@@ -15,6 +15,6 @@ Step
 - Positions/velocities are updated in-place.
 
 Notes
-- Determinism: fixed inputs/time step/seed → reproducible.
-- Safety: triangle indices must be valid; parameters are clamped internally.
-
+- Determinism: Fixed inputs/time step/seed → reproducible.
+- Safety: Triangle indices must be valid; parameters are clamped internally.
+- Performance: Batching reduces data hazards; avoid unnecessary substeps/iterations.
