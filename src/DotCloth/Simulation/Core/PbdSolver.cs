@@ -27,6 +27,7 @@ public sealed class PbdSolver : IClothSimulator
     }
 
     private Edge[] _edges = Array.Empty<Edge>();
+    private int[][] _edgeBatches = Array.Empty<int[]>();
 
     // Bend constraints across opposite vertices of adjacent triangles
     private struct Bend
@@ -38,6 +39,7 @@ public sealed class PbdSolver : IClothSimulator
         public float Lambda;
     }
     private Bend[] _bends = Array.Empty<Bend>();
+    private int[][] _bendBatches = Array.Empty<int[]>();
 
     // Tether-to-rest constraints (per-vertex to rest position)
     private Vector3[] _rest = Array.Empty<Vector3>();
@@ -76,7 +78,7 @@ public sealed class PbdSolver : IClothSimulator
 
         // Build unique edges from triangles and set rest lengths
         ValidateTriangles(triangles, _vertexCount);
-        (_edges, _bends) = BuildTopology(positions, triangles, _cfg);
+        (_edges, _bends, _edgeBatches, _bendBatches) = BuildTopology(positions, triangles, _cfg);
     }
 
     /// <inheritdoc />
@@ -133,64 +135,71 @@ public sealed class PbdSolver : IClothSimulator
             for (int it = 0; it < iterations; it++)
             {
                 // Stretch
-                for (int e = 0; e < _edges.Length; e++)
+                for (int b = 0; b < _edgeBatches.Length; b++)
                 {
-                    ref var edge = ref _edges[e];
-                    int i = edge.I;
-                    int j = edge.J;
-                    var xi = positions[i];
-                    var xj = positions[j];
-                    var d = xj - xi;
-                    var len = d.Length();
-                    if (len <= 1e-9f)
+                    var batch = _edgeBatches[b];
+                    for (int bi = 0; bi < batch.Length; bi++)
                     {
-                        continue;
+                        int e = batch[bi];
+                        ref var edge = ref _edges[e];
+                        int i = edge.I;
+                        int j = edge.J;
+                        var xi = positions[i];
+                        var xj = positions[j];
+                        var d = xj - xi;
+                        var len = d.Length();
+                        if (len <= 1e-9f) continue;
+                        var n = d / len; // normalized direction
+                        float C = len - edge.RestLength;
+
+                        float wi = _invMass[i];
+                        float wj = _invMass[j];
+                        float wsum = wi + wj;
+                        if (wsum <= 0f) continue;
+
+                        float alpha = edge.Compliance;
+                        float alphaTilde = alpha / (dt * dt);
+                        float dlambda = (-C - alphaTilde * edge.Lambda) / (wsum + alphaTilde);
+                        edge.Lambda += dlambda;
+
+                        var corr = dlambda * n;
+                        positions[i] -= wi * corr;
+                        positions[j] += wj * corr;
                     }
-                    var n = d / len; // normalized direction
-                    float C = len - edge.RestLength;
-
-                    float wi = _invMass[i];
-                    float wj = _invMass[j];
-                    float wsum = wi + wj;
-                    if (wsum <= 0f) continue;
-
-                    float alpha = edge.Compliance;
-                    float alphaTilde = alpha / (dt * dt);
-                    float dlambda = (-C - alphaTilde * edge.Lambda) / (wsum + alphaTilde);
-                    edge.Lambda += dlambda;
-
-                    var corr = dlambda * n;
-                    positions[i] -= wi * corr;
-                    positions[j] += wj * corr;
                 }
 
                 // Bending (distance across opposite vertices)
                 if (_bends.Length > 0 && _cfg.BendStiffness > 0f)
                 {
-                    for (int b = 0; b < _bends.Length; b++)
+                    for (int bb = 0; bb < _bendBatches.Length; bb++)
                     {
-                        ref var bend = ref _bends[b];
-                        int k = bend.K;
-                        int l = bend.L;
-                        var xk = positions[k];
-                        var xl = positions[l];
-                        var d = xl - xk;
-                        var len = d.Length();
-                        if (len <= 1e-9f) continue;
-                        var n = d / len;
-                        float C = len - bend.RestDistance;
-                        float wk = _invMass[k];
-                        float wl = _invMass[l];
-                        float wsum = wk + wl;
-                        if (wsum <= 0f) continue;
+                        var batch = _bendBatches[bb];
+                        for (int bi = 0; bi < batch.Length; bi++)
+                        {
+                            int biIdx = batch[bi];
+                            ref var bend = ref _bends[biIdx];
+                            int k = bend.K;
+                            int l = bend.L;
+                            var xk = positions[k];
+                            var xl = positions[l];
+                            var d = xl - xk;
+                            var len = d.Length();
+                            if (len <= 1e-9f) continue;
+                            var n = d / len;
+                            float C = len - bend.RestDistance;
+                            float wk = _invMass[k];
+                            float wl = _invMass[l];
+                            float wsum = wk + wl;
+                            if (wsum <= 0f) continue;
 
-                        float alpha = bend.Compliance;
-                        float alphaTilde = alpha / (dt * dt);
-                        float dlambda = (-C - alphaTilde * bend.Lambda) / (wsum + alphaTilde);
-                        bend.Lambda += dlambda;
-                        var corr = dlambda * n;
-                        positions[k] -= wk * corr;
-                        positions[l] += wl * corr;
+                            float alpha = bend.Compliance;
+                            float alphaTilde = alpha / (dt * dt);
+                            float dlambda = (-C - alphaTilde * bend.Lambda) / (wsum + alphaTilde);
+                            bend.Lambda += dlambda;
+                            var corr = dlambda * n;
+                            positions[k] -= wk * corr;
+                            positions[l] += wl * corr;
+                        }
                     }
                 }
 
@@ -283,7 +292,7 @@ public sealed class PbdSolver : IClothSimulator
         }
     }
 
-    private static (Edge[] edges, Bend[] bends) BuildTopology(ReadOnlySpan<Vector3> positions, ReadOnlySpan<int> triangles, Config cfg)
+    private static (Edge[] edges, Bend[] bends, int[][] edgeBatches, int[][] bendBatches) BuildTopology(ReadOnlySpan<Vector3> positions, ReadOnlySpan<int> triangles, Config cfg)
     {
         var set = new HashSet<(int, int)>();
         // edge -> list of opposite vertices (tri third index)
@@ -335,7 +344,12 @@ public sealed class PbdSolver : IClothSimulator
                 bendsList.Add(new Bend { K = kIdx, L = lIdx, RestDistance = rest, Compliance = bCompliance, Lambda = 0f });
             }
         }
-        return (edges, bendsList.ToArray());
+        var bends = bendsList.ToArray();
+
+        // Build batches (greedy coloring) to avoid shared vertices per batch
+        int[][] edgeBatches = BuildBatchesForPairs(edges.Select(e => (e.I, e.J)), positions.Length);
+        int[][] bendBatches = BuildBatchesForPairs(bends.Select(b => (b.K, b.L)), positions.Length);
+        return (edges, bends, edgeBatches, bendBatches);
 
         void AddOpp(int a, int b, int c)
         {
@@ -354,6 +368,39 @@ public sealed class PbdSolver : IClothSimulator
                 }
             }
         }
+    }
+
+    private static int[][] BuildBatchesForPairs(IEnumerable<(int a, int b)> pairs, int vertexCount)
+    {
+        var pairList = pairs.ToList();
+        var batches = new List<List<int>>();
+        // Build incidence map to speed up checks (optional: for simplicity use set per batch)
+        for (int idx = 0; idx < pairList.Count; idx++)
+        {
+            var (a, b) = pairList[idx];
+            bool placed = false;
+            for (int bi = 0; bi < batches.Count && !placed; bi++)
+            {
+                var used = new HashSet<int>();
+                // Recompute used vertices of batch bi
+                foreach (var ei in batches[bi])
+                {
+                    var p = pairList[ei];
+                    used.Add(p.a);
+                    used.Add(p.b);
+                }
+                if (!used.Contains(a) && !used.Contains(b))
+                {
+                    batches[bi].Add(idx);
+                    placed = true;
+                }
+            }
+            if (!placed)
+            {
+                batches.Add(new List<int> { idx });
+            }
+        }
+        return batches.Select(l => l.ToArray()).ToArray();
     }
 
     private static float MapStiffnessToCompliance(float stiffness01, float scale)
