@@ -45,4 +45,3 @@ public class PbdSolverTetherAndSphereTests
         Assert.True(positions[0].Length() >= 0.5f - 1e-5f);
     }
 }
-

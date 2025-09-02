@@ -4,7 +4,7 @@
     <RootNamespace>DotCloth</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>DotCloth</PackageId>
-    <Version>1.0.0-alpha.1</Version>
+    <Version>0.0.0</Version>
     <Authors>DotCloth Team</Authors>
     <Description>High-performance, UnityCloth-concept compatible XPBD cloth simulation library for .NET 9.0. Deterministic, thread-safe API with tests and CI.</Description>
     <PackageTags>cloth;PBD;XPBD;UnityCloth;simulation;physics</PackageTags>

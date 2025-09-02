@@ -250,7 +250,7 @@ public sealed class PbdSolver : IClothSimulator
             {
                 foreach (var c in _colliders)
                 {
-                    c.Resolve(positions, velocities, dt, _cfg.CollisionThickness, _cfg.Friction);
+                    c.Resolve(_prev, positions, velocities, dt, _cfg.CollisionThickness, _cfg.Friction);
                 }
             }
 

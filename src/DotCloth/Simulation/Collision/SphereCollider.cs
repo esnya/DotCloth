@@ -16,7 +16,7 @@ public sealed class SphereCollider : ICollider
     }
 
     /// <inheritdoc />
-    public void Resolve(Span<Vector3> positions, Span<Vector3> velocities, float deltaTime, float thickness, float friction)
+    public void Resolve(ReadOnlySpan<Vector3> prevPositions, Span<Vector3> positions, Span<Vector3> velocities, float deltaTime, float thickness, float friction)
     {
         float effectiveR = _radius + MathF.Max(0f, thickness);
         for (int i = 0; i < positions.Length; i++)
@@ -28,6 +28,27 @@ public sealed class SphereCollider : ICollider
             float pen = effectiveR - dist;
             if (pen > 0f)
             {
+                // Swept push: if previous was outside, move to intersection point
+                var xp = prevPositions[i];
+                if ((xp - _center).Length() >= effectiveR - 1e-6f)
+                {
+                    var d = x - xp;
+                    var m = xp - _center;
+                    float a = Vector3.Dot(d, d);
+                    float b = 2f * Vector3.Dot(d, m);
+                    float c = Vector3.Dot(m, m) - effectiveR * effectiveR;
+                    float disc = b * b - 4f * a * c;
+                    if (disc >= 0f && a > 1e-12f)
+                    {
+                        float t = (-b + MathF.Sqrt(disc)) / (2f * a); // exit time
+                        t = Math.Clamp(t, 0f, 1f);
+                        x = xp + d * t;
+                        positions[i] = x;
+                        to = x - _center;
+                        dist = to.Length();
+                        if (dist < 1e-9f) dist = 1e-9f;
+                    }
+                }
                 var n = to / dist;
                 positions[i] = _center + n * effectiveR;
                 var v = velocities[i];

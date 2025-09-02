@@ -20,7 +20,7 @@ public sealed class PlaneCollider : ICollider
     }
 
     /// <inheritdoc />
-    public void Resolve(Span<Vector3> positions, Span<Vector3> velocities, float deltaTime, float thickness, float friction)
+    public void Resolve(ReadOnlySpan<Vector3> prevPositions, Span<Vector3> positions, Span<Vector3> velocities, float deltaTime, float thickness, float friction)
     {
         for (int i = 0; i < positions.Length; i++)
         {
@@ -29,8 +29,23 @@ public sealed class PlaneCollider : ICollider
             float minDist = thickness - d;
             if (minDist > 0f)
             {
-                // Push out along normal
-                positions[i] = x + _normal * minDist;
+                // Swept push-out using previous position if outside
+                var xp = prevPositions[i];
+                float dp = Vector3.Dot(_normal, xp) - _offset;
+                float t = 1f;
+                if (dp >= thickness)
+                {
+                    // Solve xp + t*(x-xp) lies on plane at distance thickness
+                    var vx = x - xp;
+                    float denom = Vector3.Dot(_normal, vx);
+                    if (MathF.Abs(denom) > 1e-9f)
+                    {
+                        t = (thickness - dp) / denom;
+                        t = Math.Clamp(t, 0f, 1f);
+                    }
+                }
+                var xi = Vector3.Lerp(xp, x, t);
+                positions[i] = xi + _normal * (thickness - (Vector3.Dot(_normal, xi) - _offset));
                 // Simple friction: remove velocity component along tangent proportionally
                 var v = velocities[i];
                 var vn = Vector3.Dot(v, _normal) * _normal;

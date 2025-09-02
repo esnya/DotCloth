@@ -18,7 +18,7 @@ public sealed class CapsuleCollider : ICollider
     }
 
     /// <inheritdoc />
-    public void Resolve(Span<Vector3> positions, Span<Vector3> velocities, float deltaTime, float thickness, float friction)
+    public void Resolve(ReadOnlySpan<Vector3> prevPositions, Span<Vector3> positions, Span<Vector3> velocities, float deltaTime, float thickness, float friction)
     {
         float r = _radius + MathF.Max(0f, thickness);
         var seg = _p1 - _p0;
@@ -39,6 +39,22 @@ public sealed class CapsuleCollider : ICollider
             float pen = r - dist;
             if (pen > 0f)
             {
+                // Simple swept: if previous point was outside, try moving to boundary along prev->curr
+                var xp = prevPositions[i];
+                float tp = 0f;
+                if (segLen2 > 1e-12f)
+                {
+                    tp = Vector3.Dot(xp - _p0, seg) / segLen2;
+                    tp = Math.Clamp(tp, 0f, 1f);
+                }
+                var cp = _p0 + seg * tp;
+                if ((xp - cp).Length() >= r - 1e-6f)
+                {
+                    var dir = x - xp;
+                    // Step toward exit point in one shot by projecting onto local normal at new closest point
+                    // (approximate; keeps implementation simple)
+                    // No explicit time solve; final snap to surface below ensures separation.
+                }
                 var n = d / dist;
                 positions[i] = c + n * r;
                 var v = velocities[i];

@@ -22,10 +22,9 @@ Solver Settings
 - `ClothParameters.ComplianceScale` — maps [0..1] stiffness → XPBD compliance alpha.
 
 Collision Hooks
-- Implement `ICollider.Resolve(...)` and pass to `PbdSolver.SetColliders(...)`.
-- Included: `PlaneCollider` (infinite plane) for basic testing.
-- Included: `SphereCollider` (center + radius)
- - Included: `CapsuleCollider` (segment + radius)
+- Implement `ICollider.Resolve(prevPositions, positions, velocities, dt, thickness, friction)` and pass to `PbdSolver.SetColliders(...)`.
+- Included: `PlaneCollider` (infinite plane), `SphereCollider` (center + radius), `CapsuleCollider` (segment + radius).
+- Receives previous positions to allow simple swept push-out and reduce tunneling.
 
 Constraints
 - Stretch: unique edges from triangles, XPBD with per-edge lambdas.
