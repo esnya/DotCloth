@@ -24,5 +24,13 @@ public interface IClothSimulator
 
     /// <summary>Updates parameters. May re-derive internal coefficients.</summary>
     void UpdateParameters(Parameters.ClothParameters parameters);
-}
 
+    /// <summary>Sets per-vertex inverse masses. Zero fixes a vertex (pinned).</summary>
+    void SetInverseMasses(ReadOnlySpan<float> inverseMasses);
+
+    /// <summary>Rebuilds rest-state dependent data (e.g., rest lengths) from positions.</summary>
+    void ResetRestState(ReadOnlySpan<Vector3> positions);
+
+    /// <summary>Sets collision resolvers for this simulator.</summary>
+    void SetColliders(IEnumerable<Collision.ICollider> colliders);
+}

@@ -26,6 +26,17 @@ public sealed class PbdSolver : IClothSimulator
 
     private Edge[] _edges = Array.Empty<Edge>();
 
+    // Bend constraints across opposite vertices of adjacent triangles
+    private struct Bend
+    {
+        public int K;
+        public int L;
+        public float RestDistance;
+        public float Compliance;
+        public float Lambda;
+    }
+    private Bend[] _bends = Array.Empty<Bend>();
+
     // Collision hooks (optional)
     private readonly List<Collision.ICollider> _colliders = new();
     public void SetColliders(IEnumerable<Collision.ICollider> colliders)
@@ -48,7 +59,7 @@ public sealed class PbdSolver : IClothSimulator
 
         // Build unique edges from triangles and set rest lengths
         ValidateTriangles(triangles, _vertexCount);
-        _edges = BuildEdges(positions, triangles, _cfg);
+        (_edges, _bends) = BuildTopology(positions, triangles, _cfg);
     }
 
     public void Step(float deltaTime, Span<Vector3> positions, Span<Vector3> velocities)
@@ -86,9 +97,10 @@ public sealed class PbdSolver : IClothSimulator
                 positions[i] += v * dt;
             }
 
-            // XPBD iterations for stretch constraints
+            // XPBD iterations for stretch and bending constraints
             for (int it = 0; it < iterations; it++)
             {
+                // Stretch
                 for (int e = 0; e < _edges.Length; e++)
                 {
                     ref var edge = ref _edges[e];
@@ -118,6 +130,36 @@ public sealed class PbdSolver : IClothSimulator
                     var corr = dlambda * n;
                     positions[i] -= wi * corr;
                     positions[j] += wj * corr;
+                }
+
+                // Bending (distance across opposite vertices)
+                if (_bends.Length > 0 && _cfg.BendStiffness > 0f)
+                {
+                    for (int b = 0; b < _bends.Length; b++)
+                    {
+                        ref var bend = ref _bends[b];
+                        int k = bend.K;
+                        int l = bend.L;
+                        var xk = positions[k];
+                        var xl = positions[l];
+                        var d = xl - xk;
+                        var len = d.Length();
+                        if (len <= 1e-9f) continue;
+                        var n = d / len;
+                        float C = len - bend.RestDistance;
+                        float wk = _invMass[k];
+                        float wl = _invMass[l];
+                        float wsum = wk + wl;
+                        if (wsum <= 0f) continue;
+
+                        float alpha = bend.Compliance;
+                        float alphaTilde = alpha / (dt * dt);
+                        float dlambda = (-C - alphaTilde * bend.Lambda) / (wsum + alphaTilde);
+                        bend.Lambda += dlambda;
+                        var corr = dlambda * n;
+                        positions[k] -= wk * corr;
+                        positions[l] += wl * corr;
+                    }
                 }
             }
 
@@ -153,11 +195,20 @@ public sealed class PbdSolver : IClothSimulator
                 _edges[e].Compliance = MapStiffnessToCompliance(_cfg.StretchStiffness, _cfg.ComplianceScale);
             }
         }
+        if (_bends.Length > 0)
+        {
+            for (int b = 0; b < _bends.Length; b++)
+            {
+                _bends[b].Compliance = MapStiffnessToCompliance(_cfg.BendStiffness, _cfg.ComplianceScale);
+            }
+        }
     }
 
-    private static Edge[] BuildEdges(ReadOnlySpan<Vector3> positions, ReadOnlySpan<int> triangles, Config cfg)
+    private static (Edge[] edges, Bend[] bends) BuildTopology(ReadOnlySpan<Vector3> positions, ReadOnlySpan<int> triangles, Config cfg)
     {
         var set = new HashSet<(int, int)>();
+        // edge -> list of opposite vertices (tri third index)
+        var opp = new Dictionary<(int,int), (int a, int b)>();
         void Add(int a, int b)
         {
             int i = Math.Min(a, b);
@@ -173,6 +224,11 @@ public sealed class PbdSolver : IClothSimulator
             Add(a, b);
             Add(b, c);
             Add(c, a);
+
+            // track opposite vertices per undirected edge
+            AddOpp(a,b,c);
+            AddOpp(b,c,a);
+            AddOpp(c,a,b);
         }
 
         var edges = new Edge[set.Count];
@@ -183,7 +239,42 @@ public sealed class PbdSolver : IClothSimulator
             var rest = Vector3.Distance(positions[i], positions[j]);
             edges[k++] = new Edge { I = i, J = j, RestLength = rest, Compliance = compliance, Lambda = 0f };
         }
-        return edges;
+
+        // Build bends from opposite pairs across shared edges
+        var bendsList = new List<Bend>();
+        float bCompliance = MapStiffnessToCompliance(cfg.BendStiffness, cfg.ComplianceScale);
+        foreach (var kv in opp)
+        {
+            var (i,j) = kv.Key;
+            var pair = kv.Value;
+            if (pair.a >= 0 && pair.b >= 0)
+            {
+                int kIdx = pair.a;
+                int lIdx = pair.b;
+                // distance-based bending across opposite vertices
+                float rest = Vector3.Distance(positions[kIdx], positions[lIdx]);
+                bendsList.Add(new Bend { K = kIdx, L = lIdx, RestDistance = rest, Compliance = bCompliance, Lambda = 0f });
+            }
+        }
+        return (edges, bendsList.ToArray());
+
+        void AddOpp(int a, int b, int c)
+        {
+            int i = Math.Min(a, b);
+            int j = Math.Max(a, b);
+            var key = (i, j);
+            if (!opp.TryGetValue(key, out var val))
+            {
+                opp[key] = (c, -1);
+            }
+            else
+            {
+                if (val.b < 0)
+                {
+                    opp[key] = (val.a, c);
+                }
+            }
+        }
     }
 
     private static float MapStiffnessToCompliance(float stiffness01, float scale)
@@ -266,6 +357,33 @@ public sealed class PbdSolver : IClothSimulator
                 Math.Max(1, p.Substeps),
                 Math.Max(0f, p.ComplianceScale)
             );
+        }
+    }
+
+    public void SetInverseMasses(ReadOnlySpan<float> inverseMasses)
+    {
+        if (inverseMasses.Length != _vertexCount) throw new ArgumentException("inverseMasses length mismatch", nameof(inverseMasses));
+        for (int i = 0; i < _vertexCount; i++)
+        {
+            _invMass[i] = Math.Max(0f, inverseMasses[i]);
+        }
+    }
+
+    public void ResetRestState(ReadOnlySpan<Vector3> positions)
+    {
+        if (positions.Length != _vertexCount) throw new ArgumentException("positions length mismatch", nameof(positions));
+        // Recompute edge and bend rest values; keep topology
+        for (int e = 0; e < _edges.Length; e++)
+        {
+            var (i, j) = (_edges[e].I, _edges[e].J);
+            _edges[e].RestLength = Vector3.Distance(positions[i], positions[j]);
+            _edges[e].Lambda = 0f;
+        }
+        for (int b = 0; b < _bends.Length; b++)
+        {
+            var (k, l) = (_bends[b].K, _bends[b].L);
+            _bends[b].RestDistance = Vector3.Distance(positions[k], positions[l]);
+            _bends[b].Lambda = 0f;
         }
     }
 }
