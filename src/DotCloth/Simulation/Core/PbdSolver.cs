@@ -25,6 +25,9 @@ public sealed class PbdSolver : IClothSimulator
         public float RestLength;
         public float Compliance;
         public float Lambda; // XPBD running Lagrange multiplier
+        public float Wi;
+        public float Wj;
+        public float WSum;
     }
 
     private Edge[] _edges = Array.Empty<Edge>();
@@ -38,6 +41,9 @@ public sealed class PbdSolver : IClothSimulator
         public float RestDistance;
         public float Compliance;
         public float Lambda;
+        public float Wk;
+        public float Wl;
+        public float WSum;
     }
     private Bend[] _bends = Array.Empty<Bend>();
     private int[][] _bendBatches = Array.Empty<int[]>();
@@ -81,6 +87,8 @@ public sealed class PbdSolver : IClothSimulator
         // Build unique edges from triangles and set rest lengths
         ValidateTriangles(triangles, _vertexCount);
         (_edges, _bends, _edgeBatches, _bendBatches) = BuildTopology(positions, triangles, _cfg);
+        RecomputeEdgeMasses();
+        RecomputeBendMasses();
     }
 
     /// <inheritdoc />
@@ -153,9 +161,9 @@ public sealed class PbdSolver : IClothSimulator
                         var n = d / len; // normalized direction
                         float C = len - edge.RestLength;
 
-                        float wi = _invMass[i];
-                        float wj = _invMass[j];
-                        float wsum = wi + wj;
+                        float wi = edge.Wi;
+                        float wj = edge.Wj;
+                        float wsum = edge.WSum;
                         if (wsum <= 0f) continue;
 
                         float alphaTilde = edge.Compliance * invDt2;
@@ -187,9 +195,9 @@ public sealed class PbdSolver : IClothSimulator
                             if (len <= 1e-9f) continue;
                             var n = d / len;
                             float C = len - bend.RestDistance;
-                            float wk = _invMass[k];
-                            float wl = _invMass[l];
-                            float wsum = wk + wl;
+                            float wk = bend.Wk;
+                            float wl = bend.Wl;
+                            float wsum = bend.WSum;
                             if (wsum <= 0f) continue;
 
                             float alphaTilde = bend.Compliance * invDt2;
@@ -410,6 +418,28 @@ public sealed class PbdSolver : IClothSimulator
         return softness * softness * Math.Max(1e-12f, scale);
     }
 
+    private void RecomputeEdgeMasses()
+    {
+        for (int e = 0; e < _edges.Length; e++)
+        {
+            ref var edge = ref _edges[e];
+            edge.Wi = _invMass[edge.I];
+            edge.Wj = _invMass[edge.J];
+            edge.WSum = edge.Wi + edge.Wj;
+        }
+    }
+
+    private void RecomputeBendMasses()
+    {
+        for (int b = 0; b < _bends.Length; b++)
+        {
+            ref var bend = ref _bends[b];
+            bend.Wk = _invMass[bend.K];
+            bend.Wl = _invMass[bend.L];
+            bend.WSum = bend.Wk + bend.Wl;
+        }
+    }
+
     private static void ValidateTriangles(ReadOnlySpan<int> tris, int vertexCount)
     {
         for (int t = 0; t < tris.Length; t++)
@@ -528,6 +558,8 @@ public sealed class PbdSolver : IClothSimulator
         {
             _invMass[i] = Math.Max(0f, inverseMasses[i]);
         }
+        RecomputeEdgeMasses();
+        RecomputeBendMasses();
     }
 
     /// <inheritdoc />
@@ -563,6 +595,8 @@ public sealed class PbdSolver : IClothSimulator
             if ((uint)i >= (uint)_vertexCount) throw new ArgumentOutOfRangeException(nameof(indices));
             _invMass[i] = 0f;
         }
+        RecomputeEdgeMasses();
+        RecomputeBendMasses();
     }
 
     /// <inheritdoc />
