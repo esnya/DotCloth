@@ -21,6 +21,10 @@ Solver Settings
 - `ClothParameters.Substeps` — substeps per `Step` (default 1).
 - `ClothParameters.ComplianceScale` — maps [0..1] stiffness → XPBD compliance alpha.
 
+Tuning Notes
+- Iterations are the primary quality vs. cost knob. Start at 8–10 and adjust by observing stretch/bend violation reduction vs. time budget.
+- Substeps increase cost quickly; prefer higher Iterations before increasing Substeps.
+
 Collision Hooks
 - Implement `ICollider.Resolve(prevPositions, positions, velocities, dt, thickness, friction)` and pass to `PbdSolver.SetColliders(...)`.
 - Included: `PlaneCollider` (infinite plane), `SphereCollider` (center + radius), `CapsuleCollider` (segment + radius).

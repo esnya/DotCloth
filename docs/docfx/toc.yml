@@ -1,0 +1,19 @@
+- name: Overview
+  href: index.md
+- name: API
+  href: api/
+- name: Guides
+  items:
+    - name: Minimal Usage
+      href: ../usage/minimal.md
+    - name: Parameter Recommendations
+      href: ../usage/recommendations.md
+    - name: API Overview
+      href: ../api/overview.md
+    - name: Algorithms (XPBD)
+      href: ../algorithms/pbd-outline.md
+    - name: Bending Models
+      href: ../design/bending-models.md
+    - name: Glossary
+      href: ../glossary.md
+

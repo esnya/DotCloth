@@ -33,6 +33,9 @@ Repository Structure
 - `tests/` — Unit tests (`DotCloth.Tests`).
 - `AGENTS.md` — Project agent rules (extends team defaults).
 
+Documentation
+- Auto-generated docs (DocFX) + guides live under `docs/docfx`. CI builds and can publish to GitHub Pages.
+
 Contributing
 - Follow the rules in `AGENTS.md`.
 - Keep changes cohesive, documented, and covered by tests.

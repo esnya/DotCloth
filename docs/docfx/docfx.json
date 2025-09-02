@@ -1,0 +1,29 @@
+{
+  "metadata": [
+    {
+      "src": [
+        { "files": ["../../src/DotCloth/**/*.csproj"] }
+      ],
+      "dest": "api",
+      "properties": {
+        "TargetFramework": "net9.0"
+      }
+    }
+  ],
+  "build": {
+    "content": [
+      { "files": ["index.md", "toc.yml", "../api/**/*.md", "../usage/**/*.md", "../algorithms/**/*.md", "../design/**/*.md", "../glossary.md"] },
+      { "files": ["api/**.yml", "api/index.md"], "dest": "api" }
+    ],
+    "resource": [
+      { "files": ["styles/**"] }
+    ],
+    "globalMetadata": {
+      "_appTitle": "DotCloth",
+      "_enableSearch": true
+    },
+    "template": ["default"],
+    "dest": "_site"
+  }
+}
+
