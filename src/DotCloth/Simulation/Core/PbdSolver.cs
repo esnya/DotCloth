@@ -16,10 +16,6 @@ public sealed class PbdSolver : IClothSimulator
     // Mass/inertia
     private float[] _invMass = Array.Empty<float>();
     private Vector3[] _prev = Array.Empty<Vector3>();
-    // SoA positions for hot loops
-    private float[] _px = Array.Empty<float>();
-    private float[] _py = Array.Empty<float>();
-    private float[] _pz = Array.Empty<float>();
 
     // Edge stretch constraints (unique undirected)
     private struct Edge
@@ -82,9 +78,6 @@ public sealed class PbdSolver : IClothSimulator
         var inv = 1.0f / _cfg.VertexMass;
         for (int i = 0; i < _vertexCount; i++) _invMass[i] = inv;
         _prev = new Vector3[_vertexCount];
-        _px = new float[_vertexCount];
-        _py = new float[_vertexCount];
-        _pz = new float[_vertexCount];
 
         // Rest state
         _rest = new Vector3[_vertexCount];
@@ -129,15 +122,8 @@ public sealed class PbdSolver : IClothSimulator
 
         for (int s = 0; s < substeps; s++)
         {
-            // Save previous positions for velocity update and populate SoA
-            for (int i = 0; i < _vertexCount; i++)
-            {
-                var pvi = positions[i];
-                _prev[i] = pvi;
-                _px[i] = pvi.X;
-                _py[i] = pvi.Y;
-                _pz[i] = pvi.Z;
-            }
+            // Save previous positions for velocity update
+            for (int i = 0; i < _vertexCount; i++) _prev[i] = positions[i];
 
             // Integrate external acceleration (semi-implicit Euler) and predict positions
             for (int i = 0; i < _vertexCount; i++)
@@ -159,9 +145,7 @@ public sealed class PbdSolver : IClothSimulator
                 // Drag (approx.)
                 v -= v * drag * dt;
                 velocities[i] = v;
-                _px[i] += v.X * dt;
-                _py[i] += v.Y * dt;
-                _pz[i] += v.Z * dt;
+                positions[i] += v * dt;
             }
 
             // XPBD iterations for stretch, bending, and tether constraints
@@ -177,14 +161,14 @@ public sealed class PbdSolver : IClothSimulator
                         ref var edge = ref _edges[e];
                         int i = edge.I;
                         int j = edge.J;
-                        var dx = _px[j] - _px[i];
-                        var dy = _py[j] - _py[i];
-                        var dz = _pz[j] - _pz[i];
-                        var lenSq = dx * dx + dy * dy + dz * dz;
+                        var xi = positions[i];
+                        var xj = positions[j];
+                        var d = xj - xi;
+                        var lenSq = d.LengthSquared();
                         if (lenSq <= 1e-18f) continue;
                         var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
                         var len = 1f / invLen;
-                        var nx = dx * invLen; var ny = dy * invLen; var nz = dz * invLen;
+                        var n = d * invLen;
                         float C = len - edge.RestLength;
 
                         float wi = edge.Wi;
@@ -196,9 +180,9 @@ public sealed class PbdSolver : IClothSimulator
                         float dlambda = (-C - alphaTilde * edge.Lambda) / (wsum + alphaTilde);
                         edge.Lambda += dlambda;
 
-                        var cx = dlambda * nx; var cy = dlambda * ny; var cz = dlambda * nz;
-                        _px[i] -= wi * cx; _py[i] -= wi * cy; _pz[i] -= wi * cz;
-                        _px[j] += wj * cx; _py[j] += wj * cy; _pz[j] += wj * cz;
+                        var corr = dlambda * n;
+                        positions[i] -= wi * corr;
+                        positions[j] += wj * corr;
                     }
                 }
 
@@ -214,14 +198,14 @@ public sealed class PbdSolver : IClothSimulator
                             ref var bend = ref _bends[biIdx];
                             int k = bend.K;
                             int l = bend.L;
-                            var dx = _px[l] - _px[k];
-                            var dy = _py[l] - _py[k];
-                            var dz = _pz[l] - _pz[k];
-                            var lenSq = dx * dx + dy * dy + dz * dz;
+                            var xk = positions[k];
+                            var xl = positions[l];
+                            var d = xl - xk;
+                            var lenSq = d.LengthSquared();
                             if (lenSq <= 1e-18f) continue;
                             var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
                             var len = 1f / invLen;
-                            var nx = dx * invLen; var ny = dy * invLen; var nz = dz * invLen;
+                            var n = d * invLen;
                             float C = len - bend.RestDistance;
                             float wk = bend.Wk;
                             float wl = bend.Wl;
@@ -231,9 +215,9 @@ public sealed class PbdSolver : IClothSimulator
                             float alphaTilde = _bendAlphaTilde[biIdx];
                             float dlambda = (-C - alphaTilde * bend.Lambda) / (wsum + alphaTilde);
                             bend.Lambda += dlambda;
-                            var cx = dlambda * nx; var cy = dlambda * ny; var cz = dlambda * nz;
-                            _px[k] -= wk * cx; _py[k] -= wk * cy; _pz[k] -= wk * cz;
-                            _px[l] += wl * cx; _py[l] += wl * cy; _pz[l] += wl * cz;
+                            var corr = dlambda * n;
+                            positions[k] -= wk * corr;
+                            positions[l] += wl * corr;
                         }
                     }
                 }
@@ -246,26 +230,23 @@ public sealed class PbdSolver : IClothSimulator
                     {
                         float wi = _invMass[i];
                         if (wi <= 0f) continue;
-                        float xi = _px[i];
-                        float yi = _py[i];
-                        float zi = _pz[i];
-                        float tx, ty, tz;
+                        var xi = positions[i];
+                        Vector3 target;
                         float targetLen;
                         int a = _tetherAnchorIndex[i];
                         if (a >= 0)
                         {
-                            tx = _px[a]; ty = _py[a]; tz = _pz[a];
+                            target = positions[a];
                             targetLen = _tetherAnchorRestLength[i];
                         }
                         else
                         {
-                            var t0 = _rest[i];
-                            tx = t0.X; ty = t0.Y; tz = t0.Z;
+                            target = _rest[i];
                             targetLen = 0f; // pull to rest position exactly
                         }
 
-                        var dx = xi - tx; var dy = yi - ty; var dz = zi - tz;
-                        var lenSq = dx * dx + dy * dy + dz * dz;
+                        var d = xi - target;
+                        var lenSq = d.LengthSquared();
                         if (lenSq <= 1e-18f)
                         {
                             _tetherLambda[i] = 0f; // reset when satisfied
@@ -274,20 +255,14 @@ public sealed class PbdSolver : IClothSimulator
                         var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
                         var len = 1f / invLen;
                         // Direction toward the target
-                        var nx = (tx - xi) * invLen; var ny = (ty - yi) * invLen; var nz = (tz - zi) * invLen;
+                        var n = (target - xi) * invLen;
                         float C = len - targetLen;
                         float dlambda = (-C - alphaTilde * _tetherLambda[i]) / (wi + alphaTilde);
                         _tetherLambda[i] += dlambda;
-                        var cx = dlambda * nx; var cy = dlambda * ny; var cz = dlambda * nz;
-                        _px[i] -= wi * cx; _py[i] -= wi * cy; _pz[i] -= wi * cz;
+                        var corr = dlambda * n;
+                        positions[i] -= wi * corr;
                     }
                 }
-            }
-
-            // Write back SoA positions for collision and velocity update
-            for (int i = 0; i < _vertexCount; i++)
-            {
-                positions[i] = new Vector3(_px[i], _py[i], _pz[i]);
             }
 
             // Collisions (optional hooks)
