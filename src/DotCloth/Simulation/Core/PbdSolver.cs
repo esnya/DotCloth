@@ -93,6 +93,7 @@ public sealed class PbdSolver : IClothSimulator
         int substeps = Math.Max(1, _cfg.Substeps);
         int iterations = Math.Max(1, _cfg.Iterations);
         float dt = deltaTime / substeps;
+        float invDt2 = 1.0f / (dt * dt);
 
         var gravity = _cfg.UseGravity ? new Vector3(0, -9.80665f * _cfg.GravityScale, 0) : Vector3.Zero;
         var accel = gravity + _cfg.ExternalAcceleration;
@@ -157,8 +158,7 @@ public sealed class PbdSolver : IClothSimulator
                         float wsum = wi + wj;
                         if (wsum <= 0f) continue;
 
-                        float alpha = edge.Compliance;
-                        float alphaTilde = alpha / (dt * dt);
+                        float alphaTilde = edge.Compliance * invDt2;
                         float dlambda = (-C - alphaTilde * edge.Lambda) / (wsum + alphaTilde);
                         edge.Lambda += dlambda;
 
@@ -192,8 +192,7 @@ public sealed class PbdSolver : IClothSimulator
                             float wsum = wk + wl;
                             if (wsum <= 0f) continue;
 
-                            float alpha = bend.Compliance;
-                            float alphaTilde = alpha / (dt * dt);
+                            float alphaTilde = bend.Compliance * invDt2;
                             float dlambda = (-C - alphaTilde * bend.Lambda) / (wsum + alphaTilde);
                             bend.Lambda += dlambda;
                             var corr = dlambda * n;
@@ -206,8 +205,7 @@ public sealed class PbdSolver : IClothSimulator
                 // Tethers to rest positions or anchors
                 if (_cfg.TetherStiffness > 0f)
                 {
-                    float alpha = MapStiffnessToCompliance(_cfg.TetherStiffness, _cfg.ComplianceScale);
-                    float alphaTilde = alpha / (dt * dt);
+                    float alphaTilde = MapStiffnessToCompliance(_cfg.TetherStiffness, _cfg.ComplianceScale) * invDt2;
                     for (int i = 0; i < _vertexCount; i++)
                     {
                         float wi = _invMass[i];

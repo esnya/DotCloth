@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth", "src/DotCloth/Do
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.Tests", "tests/DotCloth.Tests/DotCloth.Tests.csproj", "{D44C6A9C-4D35-49A0-B6F1-5B7E3AE691AB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.Perf", "perf/DotCloth.Perf/DotCloth.Perf.csproj", "{2C0C2D7E-20C5-4B30-985A-32B9C230E0E7}"
+EndProject
 Global
     GlobalSection(SolutionConfigurationPlatforms) = preSolution
         Debug|Any CPU = Debug|Any CPU
@@ -20,6 +22,9 @@ Global
         {D44C6A9C-4D35-49A0-B6F1-5B7E3AE691AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
         {D44C6A9C-4D35-49A0-B6F1-5B7E3AE691AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
         {D44C6A9C-4D35-49A0-B6F1-5B7E3AE691AB}.Release|Any CPU.Build.0 = Release|Any CPU
+        {2C0C2D7E-20C5-4B30-985A-32B9C230E0E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {2C0C2D7E-20C5-4B30-985A-32B9C230E0E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {2C0C2D7E-20C5-4B30-985A-32B9C230E0E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {2C0C2D7E-20C5-4B30-985A-32B9C230E0E7}.Release|Any CPU.Build.0 = Release|Any CPU
     EndGlobalSection
 EndGlobal
-
