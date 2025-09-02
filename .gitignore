@@ -1,0 +1,14 @@
+# Build output
+bin/
+obj/
+
+# VS/IDE
+.vs/
+*.user
+*.suo
+*.userprefs
+
+# OS
+.DS_Store
+Thumbs.db
+
