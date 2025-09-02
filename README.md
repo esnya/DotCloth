@@ -14,6 +14,19 @@ Getting Started
 - Build: `dotnet build`
 - Test: `dotnet test` (xUnit)
 
+Quick Example
+```
+var positions = new[] { new Vector3(0,0,0), new Vector3(1,0,0), new Vector3(0,-1,0), new Vector3(1,-1,0) };
+var triangles = new[] { 0,1,2, 2,1,3 };
+var velocities = new Vector3[positions.Length];
+var p = new ClothParameters { UseGravity = true, StretchStiffness = 0.9f, BendStiffness = 0.5f, Iterations = 10 };
+var solver = new PbdSolver();
+solver.Initialize(positions, triangles, p);
+solver.PinVertices(0); // anchor one corner
+solver.SetColliders(new [] { new PlaneCollider(new Vector3(0,1,0), 0f) });
+solver.Step(0.016f, positions, velocities);
+```
+
 Repository Structure
 - `docs/` — Design notes, algorithms, API, glossary.
 - `src/` — Library code (`DotCloth`).
@@ -26,4 +39,3 @@ Contributing
 
 License
 - TBD by repository owner.
-
