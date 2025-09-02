@@ -108,6 +108,12 @@ public sealed class PbdSolver : IClothSimulator
             // Integrate external acceleration (semi-implicit Euler) and predict positions
             for (int i = 0; i < _vertexCount; i++)
             {
+                if (_invMass[i] == 0f)
+                {
+                    velocities[i] = Vector3.Zero;
+                    // Keep pinned positions unchanged during integration
+                    continue;
+                }
                 var v = velocities[i];
                 // Acceleration
                 var a = accel;
@@ -188,7 +194,7 @@ public sealed class PbdSolver : IClothSimulator
                     }
                 }
 
-                // Tethers to rest positions (pull vertices toward their rest position)
+                // Tethers to rest positions or anchors
                 if (_cfg.TetherStiffness > 0f)
                 {
                     float alpha = MapStiffnessToCompliance(_cfg.TetherStiffness, _cfg.ComplianceScale);
@@ -219,7 +225,8 @@ public sealed class PbdSolver : IClothSimulator
                             _tetherLambda[i] = 0f; // reset when satisfied
                             continue;
                         }
-                        var n = d / len;
+                        // Direction toward the target
+                        var n = (target - xi) / len;
                         float C = len - targetLen;
                         float dlambda = (-C - alphaTilde * _tetherLambda[i]) / (wi + alphaTilde);
                         _tetherLambda[i] += dlambda;
@@ -241,6 +248,11 @@ public sealed class PbdSolver : IClothSimulator
             // Update velocities from positions delta, then apply damping
             for (int i = 0; i < _vertexCount; i++)
             {
+                if (_invMass[i] == 0f)
+                {
+                    velocities[i] = Vector3.Zero;
+                    continue;
+                }
                 var v = (positions[i] - prev[i]) / dt;
                 v *= (1.0f - damping);
                 velocities[i] = v;
