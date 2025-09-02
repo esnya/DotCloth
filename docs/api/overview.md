@@ -3,6 +3,7 @@ API Overview (initial)
 
 Parameter Model
 - `ClothParameters` mirrors UnityCloth concepts: damping, stretch/bend/tether stiffness (or compliance), friction, thickness, gravity toggle/scale, external/random acceleration, air drag.
+  - `RandomAcceleration` with deterministic `RandomSeed` influences integration; default 0 disabled.
 
 Core Interfaces
 - `IClothSimulator`
@@ -37,6 +38,7 @@ Threading Contract
 
 Determinism
 - For a fixed time step, parameters, and topology, sequences of steps should be deterministic on a given architecture.
+ - Randomness uses `RandomSeed`; when non-zero and all other inputs fixed, results remain deterministic.
 
 UnityCloth Mapping (WIP)
 - Damping ↔ `Damping`

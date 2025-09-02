@@ -49,6 +49,9 @@ public sealed class ClothParameters
     /// <summary>Random acceleration magnitude for jitter (diagnostics/off by default).</summary>
     public float RandomAcceleration { get; set; } = 0.0f;
 
+    /// <summary>Seed for deterministic random acceleration.</summary>
+    public int RandomSeed { get; set; } = 0;
+
     // Solver settings
     /// <summary>Constraint iterations per substep.</summary>
     public int Iterations { get; set; } = 8;

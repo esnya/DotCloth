@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Linq;
 using DotCloth.Simulation.Parameters;
 
 namespace DotCloth.Simulation.Core;
@@ -87,6 +88,8 @@ public sealed class PbdSolver : IClothSimulator
 
         var gravity = _cfg.UseGravity ? new Vector3(0, -9.80665f * _cfg.GravityScale, 0) : Vector3.Zero;
         var accel = gravity + _cfg.ExternalAcceleration;
+        var useRandom = _cfg.RandomAcceleration > 0f;
+        var rng = useRandom ? new Rng((uint)_cfg.RandomSeed) : default;
 
         var drag = Math.Max(0f, _cfg.AirDrag);
         var damping = Math.Clamp(_cfg.Damping, 0f, 0.999f);
@@ -103,7 +106,13 @@ public sealed class PbdSolver : IClothSimulator
             {
                 var v = velocities[i];
                 // Acceleration
-                v += accel * dt;
+                var a = accel;
+                if (useRandom)
+                {
+                    var dir = rng.NextUnitVector();
+                    a += dir * _cfg.RandomAcceleration;
+                }
+                v += a * dt;
                 // Drag (approx.)
                 v -= v * drag * dt;
                 velocities[i] = v;
@@ -365,6 +374,7 @@ public sealed class PbdSolver : IClothSimulator
         public readonly float VertexMass;
         public readonly Vector3 ExternalAcceleration;
         public readonly float RandomAcceleration;
+        public readonly int RandomSeed;
         public readonly int Iterations;
         public readonly int Substeps;
         public readonly float ComplianceScale;
@@ -372,7 +382,7 @@ public sealed class PbdSolver : IClothSimulator
         private Config(
             bool useGravity, float gravityScale, float damping, float airDrag,
             float stretch, float bend, float tether, float thickness, float friction,
-            float vertexMass, Vector3 externalAccel, float randomAccel, int iterations, int substeps, float complianceScale)
+            float vertexMass, Vector3 externalAccel, float randomAccel, int randomSeed, int iterations, int substeps, float complianceScale)
         {
             UseGravity = useGravity;
             GravityScale = gravityScale;
@@ -386,6 +396,7 @@ public sealed class PbdSolver : IClothSimulator
             VertexMass = vertexMass;
             ExternalAcceleration = externalAccel;
             RandomAcceleration = randomAccel;
+            RandomSeed = randomSeed;
             Iterations = iterations;
             Substeps = substeps;
             ComplianceScale = complianceScale;
@@ -406,10 +417,41 @@ public sealed class PbdSolver : IClothSimulator
                 Math.Max(1e-6f, p.VertexMass),
                 p.ExternalAcceleration,
                 Math.Max(0f, p.RandomAcceleration),
+                p.RandomSeed,
                 Math.Max(1, p.Iterations),
                 Math.Max(1, p.Substeps),
                 Math.Max(0f, p.ComplianceScale)
             );
+        }
+    }
+
+    private struct Rng
+    {
+        private uint _state;
+        public Rng(uint seed) { _state = seed == 0 ? 1u : seed; }
+        public uint NextU32()
+        {
+            // Xorshift32
+            uint x = _state;
+            x ^= x << 13;
+            x ^= x >> 17;
+            x ^= x << 5;
+            _state = x;
+            return x;
+        }
+        public float NextFloat01()
+        {
+            return (NextU32() & 0xFFFFFF) / (float)0x1000000; // [0,1)
+        }
+        public Vector3 NextUnitVector()
+        {
+            // Marsaglia method
+            float u = 2f * NextFloat01() - 1f;
+            float v = 2f * NextFloat01() - 1f;
+            float s = u * u + v * v;
+            if (s >= 1f || s <= 1e-12f) return new Vector3(1, 0, 0);
+            float f = MathF.Sqrt(1f - s);
+            return new Vector3(2f * u * f, 2f * v * f, 1f - 2f * s);
         }
     }
 
