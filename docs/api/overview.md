@@ -24,6 +24,10 @@ Solver Settings
 Tuning Notes
 - Iterations are the primary quality vs. cost knob. Start at 8–10 and adjust by observing stretch/bend violation reduction vs. time budget.
 - Substeps increase cost quickly; prefer higher Iterations before increasing Substeps.
+- ComplianceScale controls stiffness mapping; lower values make high stiffness more rigid.
+
+Usage Guide
+- See `docs/usage/guide.md` for end‑to‑end examples, patterns, and pitfalls.
 
 Collision Hooks
 - Implement `ICollider.Resolve(prevPositions, positions, velocities, dt, thickness, friction)` and pass to `PbdSolver.SetColliders(...)`.
