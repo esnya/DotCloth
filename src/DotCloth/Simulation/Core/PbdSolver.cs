@@ -37,6 +37,10 @@ public sealed class PbdSolver : IClothSimulator
     }
     private Bend[] _bends = Array.Empty<Bend>();
 
+    // Tether-to-rest constraints (per-vertex to rest position)
+    private Vector3[] _rest = Array.Empty<Vector3>();
+    private float[] _tetherLambda = Array.Empty<float>();
+
     // Collision hooks (optional)
     private readonly List<Collision.ICollider> _colliders = new();
     public void SetColliders(IEnumerable<Collision.ICollider> colliders)
@@ -56,6 +60,11 @@ public sealed class PbdSolver : IClothSimulator
         _invMass = new float[_vertexCount];
         var inv = 1.0f / _cfg.VertexMass;
         for (int i = 0; i < _vertexCount; i++) _invMass[i] = inv;
+
+        // Rest state
+        _rest = new Vector3[_vertexCount];
+        for (int i = 0; i < _vertexCount; i++) _rest[i] = positions[i];
+        _tetherLambda = new float[_vertexCount];
 
         // Build unique edges from triangles and set rest lengths
         ValidateTriangles(triangles, _vertexCount);
@@ -97,7 +106,7 @@ public sealed class PbdSolver : IClothSimulator
                 positions[i] += v * dt;
             }
 
-            // XPBD iterations for stretch and bending constraints
+            // XPBD iterations for stretch, bending, and tether constraints
             for (int it = 0; it < iterations; it++)
             {
                 // Stretch
@@ -159,6 +168,33 @@ public sealed class PbdSolver : IClothSimulator
                         var corr = dlambda * n;
                         positions[k] -= wk * corr;
                         positions[l] += wl * corr;
+                    }
+                }
+
+                // Tethers to rest positions (pull vertices toward their rest position)
+                if (_cfg.TetherStiffness > 0f)
+                {
+                    float alpha = MapStiffnessToCompliance(_cfg.TetherStiffness, _cfg.ComplianceScale);
+                    float alphaTilde = alpha / (dt * dt);
+                    for (int i = 0; i < _vertexCount; i++)
+                    {
+                        float wi = _invMass[i];
+                        if (wi <= 0f) continue;
+                        var xi = positions[i];
+                        var x0 = _rest[i];
+                        var d = xi - x0;
+                        var len = d.Length();
+                        if (len <= 1e-9f)
+                        {
+                            _tetherLambda[i] = 0f; // reset when satisfied
+                            continue;
+                        }
+                        var n = d / len;
+                        float C = len; // target is zero distance to rest
+                        float dlambda = (-C - alphaTilde * _tetherLambda[i]) / (wi + alphaTilde);
+                        _tetherLambda[i] += dlambda;
+                        var corr = dlambda * n;
+                        positions[i] -= wi * corr;
                     }
                 }
             }
@@ -373,6 +409,11 @@ public sealed class PbdSolver : IClothSimulator
     {
         if (positions.Length != _vertexCount) throw new ArgumentException("positions length mismatch", nameof(positions));
         // Recompute edge and bend rest values; keep topology
+        for (int i = 0; i < _vertexCount; i++)
+        {
+            _rest[i] = positions[i];
+            _tetherLambda[i] = 0f;
+        }
         for (int e = 0; e < _edges.Length; e++)
         {
             var (i, j) = (_edges[e].I, _edges[e].J);
@@ -384,6 +425,16 @@ public sealed class PbdSolver : IClothSimulator
             var (k, l) = (_bends[b].K, _bends[b].L);
             _bends[b].RestDistance = Vector3.Distance(positions[k], positions[l]);
             _bends[b].Lambda = 0f;
+        }
+    }
+
+    public void PinVertices(ReadOnlySpan<int> indices)
+    {
+        for (int n = 0; n < indices.Length; n++)
+        {
+            int i = indices[n];
+            if ((uint)i >= (uint)_vertexCount) throw new ArgumentOutOfRangeException(nameof(indices));
+            _invMass[i] = 0f;
         }
     }
 }

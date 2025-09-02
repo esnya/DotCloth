@@ -33,4 +33,7 @@ public interface IClothSimulator
 
     /// <summary>Sets collision resolvers for this simulator.</summary>
     void SetColliders(IEnumerable<Collision.ICollider> colliders);
+
+    /// <summary>Pins given vertex indices by setting inverse mass to zero.</summary>
+    void PinVertices(ReadOnlySpan<int> indices);
 }
