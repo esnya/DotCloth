@@ -1,0 +1,28 @@
+using System.Numerics;
+
+namespace DotCloth.Simulation;
+
+/// <summary>
+/// Core cloth simulator contract.
+/// Implementations should be deterministic for fixed inputs and time step.
+/// </summary>
+public interface IClothSimulator
+{
+    /// <summary>
+    /// Initializes the simulator with initial positions and triangle topology.
+    /// </summary>
+    /// <param name="positions">Initial vertex positions.</param>
+    /// <param name="triangles">Triangle indices (3*n).</param>
+    /// <param name="parameters">Simulation parameters.</param>
+    void Initialize(ReadOnlySpan<Vector3> positions, ReadOnlySpan<int> triangles, Parameters.ClothParameters parameters);
+
+    /// <summary>
+    /// Advances the simulation by <paramref name="deltaTime"/>.
+    /// Positions and velocities are updated in-place.
+    /// </summary>
+    void Step(float deltaTime, Span<Vector3> positions, Span<Vector3> velocities);
+
+    /// <summary>Updates parameters. May re-derive internal coefficients.</summary>
+    void UpdateParameters(Parameters.ClothParameters parameters);
+}
+
