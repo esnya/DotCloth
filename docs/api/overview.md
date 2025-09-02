@@ -37,6 +37,10 @@ Batching (internal)
 - Greedy batching groups constraints that do not share vertices; solver processes batches sequentially for determinism.
 - This prepares for future parallelization while keeping the public API unchanged.
 
+Performance Notes
+- Per-step allocationsは避け、内部バッファ（前フレーム位置など）を再利用。
+- 制約・トポロジは初期化時に構築し、実行時は読み取りのみ。
+
 Threading Contract
 - Each simulator instance is independent. Methods are safe to call from multiple threads on different instances. Concurrent calls on the same instance require the caller to synchronize unless the implementation documents otherwise.
 

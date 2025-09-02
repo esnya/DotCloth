@@ -76,6 +76,54 @@ public class PbdSolverConstraintTests
     }
 
     [Fact]
+    public void ZeroStiffness_BehavesLikeUnconstrained()
+    {
+        var (pos0, tris) = MakeQuad();
+        var positions = (Vector3[])pos0.Clone();
+        var velocities = new Vector3[pos0.Length];
+        velocities[1] = new Vector3(5, 0, 0);
+        float dt = 0.01f;
+
+        // Unconstrained: use solver with zero iterations and zero stiffness
+        var p0 = new ClothParameters { UseGravity = false, StretchStiffness = 0f, Iterations = 1 };
+        var s0 = new PbdSolver();
+        s0.Initialize(positions, tris, p0);
+        var unconstrainedPos1 = (Vector3[])positions.Clone();
+        var unconstrainedVel1 = (Vector3[])velocities.Clone();
+        s0.Step(dt, unconstrainedPos1, unconstrainedVel1);
+
+        var p1 = new ClothParameters { UseGravity = false, StretchStiffness = 0f, Iterations = 20 };
+        var s1 = new PbdSolver();
+        var pos1 = (Vector3[])positions.Clone();
+        var vel1 = (Vector3[])velocities.Clone();
+        s1.Initialize(pos1, tris, p1);
+        s1.Step(dt, pos1, vel1);
+
+        Assert.Equal(unconstrainedPos1[1].X, pos1[1].X, 5);
+    }
+
+    [Fact]
+    public void HigherStiffness_ReducesViolationMore()
+    {
+        var (pos0, tris) = MakeQuad();
+        float dt = 0.01f;
+        float Run(float stiffness)
+        {
+            var positions = (Vector3[])pos0.Clone();
+            var velocities = new Vector3[pos0.Length];
+            velocities[1] = new Vector3(5, 0, 0);
+            var p = new ClothParameters { UseGravity = false, StretchStiffness = stiffness, Iterations = 20 };
+            var s = new PbdSolver();
+            s.Initialize(positions, tris, p);
+            s.Step(dt, positions, velocities);
+            return MathF.Abs(Vector3.Distance(positions[0], positions[1]) - Vector3.Distance(pos0[0], pos0[1]));
+        }
+        var vLow = Run(0.2f);
+        var vHigh = Run(0.9f);
+        Assert.True(vHigh <= vLow + 1e-6f);
+    }
+
+    [Fact]
     public void Determinism_FixedInputs_YieldsSameResults()
     {
         var (pos0, tris) = MakeQuad();

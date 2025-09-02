@@ -15,6 +15,7 @@ public sealed class PbdSolver : IClothSimulator
 
     // Mass/inertia
     private float[] _invMass = Array.Empty<float>();
+    private Vector3[] _prev = Array.Empty<Vector3>();
 
     // Edge stretch constraints (unique undirected)
     private struct Edge
@@ -68,6 +69,7 @@ public sealed class PbdSolver : IClothSimulator
         _invMass = new float[_vertexCount];
         var inv = 1.0f / _cfg.VertexMass;
         for (int i = 0; i < _vertexCount; i++) _invMass[i] = inv;
+        _prev = new Vector3[_vertexCount];
 
         // Rest state
         _rest = new Vector3[_vertexCount];
@@ -100,12 +102,10 @@ public sealed class PbdSolver : IClothSimulator
         var drag = Math.Max(0f, _cfg.AirDrag);
         var damping = Math.Clamp(_cfg.Damping, 0f, 0.999f);
 
-        var prev = new Vector3[_vertexCount];
-
         for (int s = 0; s < substeps; s++)
         {
             // Save previous positions for velocity update
-            for (int i = 0; i < _vertexCount; i++) prev[i] = positions[i];
+            for (int i = 0; i < _vertexCount; i++) _prev[i] = positions[i];
 
             // Integrate external acceleration (semi-implicit Euler) and predict positions
             for (int i = 0; i < _vertexCount; i++)
@@ -262,7 +262,7 @@ public sealed class PbdSolver : IClothSimulator
                     velocities[i] = Vector3.Zero;
                     continue;
                 }
-                var v = (positions[i] - prev[i]) / dt;
+                var v = (positions[i] - _prev[i]) / dt;
                 v *= (1.0f - damping);
                 velocities[i] = v;
             }
