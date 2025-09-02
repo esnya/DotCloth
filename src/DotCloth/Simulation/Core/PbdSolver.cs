@@ -156,9 +156,11 @@ public sealed class PbdSolver : IClothSimulator
                         var xi = positions[i];
                         var xj = positions[j];
                         var d = xj - xi;
-                        var len = d.Length();
-                        if (len <= 1e-9f) continue;
-                        var n = d / len; // normalized direction
+                        var lenSq = d.LengthSquared();
+                        if (lenSq <= 1e-18f) continue;
+                        var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
+                        var len = 1f / invLen;
+                        var n = d * invLen; // normalized direction (approx)
                         float C = len - edge.RestLength;
 
                         float wi = edge.Wi;
@@ -191,9 +193,11 @@ public sealed class PbdSolver : IClothSimulator
                             var xk = positions[k];
                             var xl = positions[l];
                             var d = xl - xk;
-                            var len = d.Length();
-                            if (len <= 1e-9f) continue;
-                            var n = d / len;
+                            var lenSq = d.LengthSquared();
+                            if (lenSq <= 1e-18f) continue;
+                            var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
+                            var len = 1f / invLen;
+                            var n = d * invLen;
                             float C = len - bend.RestDistance;
                             float wk = bend.Wk;
                             float wl = bend.Wl;
@@ -234,14 +238,16 @@ public sealed class PbdSolver : IClothSimulator
                         }
 
                         var d = xi - target;
-                        var len = d.Length();
-                        if (len <= 1e-9f)
+                        var lenSq = d.LengthSquared();
+                        if (lenSq <= 1e-18f)
                         {
                             _tetherLambda[i] = 0f; // reset when satisfied
                             continue;
                         }
+                        var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
+                        var len = 1f / invLen;
                         // Direction toward the target
-                        var n = (target - xi) / len;
+                        var n = (target - xi) * invLen;
                         float C = len - targetLen;
                         float dlambda = (-C - alphaTilde * _tetherLambda[i]) / (wi + alphaTilde);
                         _tetherLambda[i] += dlambda;
