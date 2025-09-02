@@ -52,6 +52,30 @@ public class PbdSolverConstraintTests
     }
 
     [Fact]
+    public void MoreIterations_MonotonicallyReduceStretchViolation()
+    {
+        var (pos0, tris) = MakeQuad();
+        var v0 = new Vector3[pos0.Length];
+        float dt = 0.01f;
+
+        float RunWithIterations(int iters)
+        {
+            var p = new ClothParameters { UseGravity = false, StretchStiffness = 1.0f, Iterations = iters, Substeps = 1 };
+            var solver = new PbdSolver();
+            var positions = (Vector3[])pos0.Clone();
+            var velocities = (Vector3[])v0.Clone();
+            velocities[1] = new Vector3(5, 0, 0);
+            solver.Initialize(positions, tris, p);
+            solver.Step(dt, positions, velocities);
+            return MathF.Abs(Vector3.Distance(positions[0], positions[1]) - Vector3.Distance(pos0[0], pos0[1]));
+        }
+
+        var v10 = RunWithIterations(10);
+        var v20 = RunWithIterations(20);
+        Assert.True(v20 <= v10 + 1e-6f);
+    }
+
+    [Fact]
     public void Determinism_FixedInputs_YieldsSameResults()
     {
         var (pos0, tris) = MakeQuad();

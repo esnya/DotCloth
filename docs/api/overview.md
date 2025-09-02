@@ -31,7 +31,11 @@ Constraints
 - Stretch: unique edges from triangles, XPBD with per-edge lambdas.
 - Bending: distance across opposite vertices of adjacent triangles (XPBD). Future: dihedral angle.
 - Tether-to-rest: pulls vertices toward rest position using XPBD; not identical to UnityCloth’s “tethers” but offers stabilizing behavior. Mapping notes pending.
- - Tether-to-anchor: nearest anchor per vertex with rest length = initial distance × `TetherLengthScale`.
+- Tether-to-anchor: nearest anchor per vertex with rest length = initial distance × `TetherLengthScale`.
+
+Batching (internal)
+- Greedy batching groups constraints that do not share vertices; solver processes batches sequentially for determinism.
+- This prepares for future parallelization while keeping the public API unchanged.
 
 Threading Contract
 - Each simulator instance is independent. Methods are safe to call from multiple threads on different instances. Concurrent calls on the same instance require the caller to synchronize unless the implementation documents otherwise.
