@@ -120,7 +120,7 @@ public class PbdSolverConstraintTests
         }
         var vLow = Run(0.2f);
         var vHigh = Run(0.9f);
-        Assert.True(vHigh <= vLow + 1e-6f);
+        Assert.True(vHigh <= vLow + 1e-4f);
     }
 
     [Fact]

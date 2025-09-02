@@ -32,6 +32,7 @@ public sealed class PbdSolver : IClothSimulator
 
     private Edge[] _edges = Array.Empty<Edge>();
     private int[][] _edgeBatches = Array.Empty<int[]>();
+    private float[] _edgeAlphaTilde = Array.Empty<float>();
 
     // Bend constraints across opposite vertices of adjacent triangles
     private struct Bend
@@ -47,6 +48,7 @@ public sealed class PbdSolver : IClothSimulator
     }
     private Bend[] _bends = Array.Empty<Bend>();
     private int[][] _bendBatches = Array.Empty<int[]>();
+    private float[] _bendAlphaTilde = Array.Empty<float>();
 
     // Tether-to-rest constraints (per-vertex to rest position)
     private Vector3[] _rest = Array.Empty<Vector3>();
@@ -87,6 +89,7 @@ public sealed class PbdSolver : IClothSimulator
         // Build unique edges from triangles and set rest lengths
         ValidateTriangles(triangles, _vertexCount);
         (_edges, _bends, _edgeBatches, _bendBatches) = BuildTopology(positions, triangles, _cfg);
+        SortBatchesByVertexIndex();
         RecomputeEdgeMasses();
         RecomputeBendMasses();
     }
@@ -102,6 +105,12 @@ public sealed class PbdSolver : IClothSimulator
         int iterations = Math.Max(1, _cfg.Iterations);
         float dt = deltaTime / substeps;
         float invDt2 = 1.0f / (dt * dt);
+
+        // Precompute alphaTilde per constraint to avoid repeated multiplications
+        if (_edgeAlphaTilde.Length != _edges.Length) _edgeAlphaTilde = new float[_edges.Length];
+        for (int e = 0; e < _edges.Length; e++) _edgeAlphaTilde[e] = _edges[e].Compliance * invDt2;
+        if (_bendAlphaTilde.Length != _bends.Length) _bendAlphaTilde = new float[_bends.Length];
+        for (int b = 0; b < _bends.Length; b++) _bendAlphaTilde[b] = _bends[b].Compliance * invDt2;
 
         var gravity = _cfg.UseGravity ? new Vector3(0, -9.80665f * _cfg.GravityScale, 0) : Vector3.Zero;
         var accel = gravity + _cfg.ExternalAcceleration;
@@ -168,7 +177,7 @@ public sealed class PbdSolver : IClothSimulator
                         float wsum = edge.WSum;
                         if (wsum <= 0f) continue;
 
-                        float alphaTilde = edge.Compliance * invDt2;
+                        float alphaTilde = _edgeAlphaTilde[e];
                         float dlambda = (-C - alphaTilde * edge.Lambda) / (wsum + alphaTilde);
                         edge.Lambda += dlambda;
 
@@ -204,7 +213,7 @@ public sealed class PbdSolver : IClothSimulator
                             float wsum = bend.WSum;
                             if (wsum <= 0f) continue;
 
-                            float alphaTilde = bend.Compliance * invDt2;
+                            float alphaTilde = _bendAlphaTilde[biIdx];
                             float dlambda = (-C - alphaTilde * bend.Lambda) / (wsum + alphaTilde);
                             bend.Lambda += dlambda;
                             var corr = dlambda * n;
@@ -413,6 +422,33 @@ public sealed class PbdSolver : IClothSimulator
             }
         }
         return batches.Select(l => l.ToArray()).ToArray();
+    }
+
+    private void SortBatchesByVertexIndex()
+    {
+        // Sort edges in each batch by min(vertex indices) to improve locality
+        for (int bi = 0; bi < _edgeBatches.Length; bi++)
+        {
+            Array.Sort(_edgeBatches[bi], (x, y) =>
+            {
+                var ex = _edges[x];
+                var ey = _edges[y];
+                int kx = ex.I < ex.J ? ex.I : ex.J;
+                int ky = ey.I < ey.J ? ey.I : ey.J;
+                return kx.CompareTo(ky);
+            });
+        }
+        for (int bi = 0; bi < _bendBatches.Length; bi++)
+        {
+            Array.Sort(_bendBatches[bi], (x, y) =>
+            {
+                var bx = _bends[x];
+                var by = _bends[y];
+                int kx = bx.K < bx.L ? bx.K : bx.L;
+                int ky = by.K < by.L ? by.K : by.L;
+                return kx.CompareTo(ky);
+            });
+        }
     }
 
     private static float MapStiffnessToCompliance(float stiffness01, float scale)
