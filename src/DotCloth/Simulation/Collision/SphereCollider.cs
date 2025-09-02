@@ -2,17 +2,20 @@ using System.Numerics;
 
 namespace DotCloth.Simulation.Collision;
 
+/// <summary>Sphere collider with center and radius.</summary>
 public sealed class SphereCollider : ICollider
 {
     private Vector3 _center;
     private float _radius;
 
+    /// <summary>Constructs a sphere collider at <paramref name="center"/> with <paramref name="radius"/>.</summary>
     public SphereCollider(Vector3 center, float radius)
     {
         _center = center;
         _radius = MathF.Max(0f, radius);
     }
 
+    /// <inheritdoc />
     public void Resolve(Span<Vector3> positions, Span<Vector3> velocities, float deltaTime, float thickness, float friction)
     {
         float effectiveR = _radius + MathF.Max(0f, thickness);
@@ -36,4 +39,3 @@ public sealed class SphereCollider : ICollider
         }
     }
 }
-

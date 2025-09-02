@@ -47,12 +47,14 @@ public sealed class PbdSolver : IClothSimulator
 
     // Collision hooks (optional)
     private readonly List<Collision.ICollider> _colliders = new();
+    /// <inheritdoc />
     public void SetColliders(IEnumerable<Collision.ICollider> colliders)
     {
         _colliders.Clear();
         _colliders.AddRange(colliders);
     }
 
+    /// <inheritdoc />
     public void Initialize(ReadOnlySpan<Vector3> positions, ReadOnlySpan<int> triangles, ClothParameters parameters)
     {
         if (positions.Length == 0) throw new ArgumentException("positions empty", nameof(positions));
@@ -77,6 +79,7 @@ public sealed class PbdSolver : IClothSimulator
         (_edges, _bends) = BuildTopology(positions, triangles, _cfg);
     }
 
+    /// <inheritdoc />
     public void Step(float deltaTime, Span<Vector3> positions, Span<Vector3> velocities)
     {
         if (positions.Length != _vertexCount) throw new ArgumentException("positions length mismatch", nameof(positions));
@@ -245,6 +248,7 @@ public sealed class PbdSolver : IClothSimulator
         }
     }
 
+    /// <inheritdoc />
     public void UpdateParameters(ClothParameters parameters)
     {
         if (parameters is null) throw new ArgumentNullException(nameof(parameters));
@@ -459,6 +463,7 @@ public sealed class PbdSolver : IClothSimulator
         }
     }
 
+    /// <inheritdoc />
     public void SetInverseMasses(ReadOnlySpan<float> inverseMasses)
     {
         if (inverseMasses.Length != _vertexCount) throw new ArgumentException("inverseMasses length mismatch", nameof(inverseMasses));
@@ -468,6 +473,7 @@ public sealed class PbdSolver : IClothSimulator
         }
     }
 
+    /// <inheritdoc />
     public void ResetRestState(ReadOnlySpan<Vector3> positions)
     {
         if (positions.Length != _vertexCount) throw new ArgumentException("positions length mismatch", nameof(positions));
@@ -491,6 +497,7 @@ public sealed class PbdSolver : IClothSimulator
         }
     }
 
+    /// <inheritdoc />
     public void PinVertices(ReadOnlySpan<int> indices)
     {
         for (int n = 0; n < indices.Length; n++)
@@ -501,11 +508,13 @@ public sealed class PbdSolver : IClothSimulator
         }
     }
 
+    /// <inheritdoc />
     public void PinVertices(params int[] indices)
     {
         PinVertices((ReadOnlySpan<int>)indices);
     }
 
+    /// <inheritdoc />
     public void SetTetherAnchors(ReadOnlySpan<int> anchors)
     {
         // Build nearest anchor per vertex based on rest positions

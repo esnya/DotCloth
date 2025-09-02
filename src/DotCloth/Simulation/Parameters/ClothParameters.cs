@@ -8,6 +8,7 @@ namespace DotCloth.Simulation.Parameters;
 /// </summary>
 public sealed class ClothParameters
 {
+    /// <summary>Enables gravity when true.</summary>
     public bool UseGravity { get; set; } = true;
 
     /// <summary>Gravity scale multiplier when <see cref="UseGravity"/> is true. Typical: 1.0.</summary>

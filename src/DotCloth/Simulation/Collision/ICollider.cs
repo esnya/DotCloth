@@ -2,6 +2,10 @@ using System.Numerics;
 
 namespace DotCloth.Simulation.Collision;
 
+/// <summary>
+/// Collision resolver that can modify particle positions and velocities in-place.
+/// Implementations should be deterministic for fixed inputs.
+/// </summary>
 public interface ICollider
 {
     /// <summary>

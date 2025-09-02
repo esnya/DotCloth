@@ -2,12 +2,14 @@ using System.Numerics;
 
 namespace DotCloth.Simulation.Collision;
 
+/// <summary>Capsule collider defined by segment [p0, p1] and radius.</summary>
 public sealed class CapsuleCollider : ICollider
 {
     private Vector3 _p0;
     private Vector3 _p1;
     private float _radius;
 
+    /// <summary>Constructs a capsule collider from segment endpoints and radius.</summary>
     public CapsuleCollider(Vector3 p0, Vector3 p1, float radius)
     {
         _p0 = p0;
@@ -15,6 +17,7 @@ public sealed class CapsuleCollider : ICollider
         _radius = MathF.Max(0f, radius);
     }
 
+    /// <inheritdoc />
     public void Resolve(Span<Vector3> positions, Span<Vector3> velocities, float deltaTime, float thickness, float friction)
     {
         float r = _radius + MathF.Max(0f, thickness);

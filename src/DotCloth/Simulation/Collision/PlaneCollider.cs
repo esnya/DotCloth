@@ -3,13 +3,14 @@ using System.Numerics;
 namespace DotCloth.Simulation.Collision;
 
 /// <summary>
-/// Infinite plane collider: dot(n, x) >= offset (outside half-space).
+/// Infinite plane collider: dot(n, x) &gt;= offset (outside half-space).
 /// </summary>
 public sealed class PlaneCollider : ICollider
 {
     private readonly Vector3 _normal;
     private readonly float _offset;
 
+    /// <summary>Creates a plane with normal (normalized internally) and offset.</summary>
     public PlaneCollider(Vector3 normal, float offset)
     {
         var n = normal;
@@ -18,6 +19,7 @@ public sealed class PlaneCollider : ICollider
         _offset = offset;
     }
 
+    /// <inheritdoc />
     public void Resolve(Span<Vector3> positions, Span<Vector3> velocities, float deltaTime, float thickness, float friction)
     {
         for (int i = 0; i < positions.Length; i++)
