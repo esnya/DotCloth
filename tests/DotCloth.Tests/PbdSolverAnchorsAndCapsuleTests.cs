@@ -58,7 +58,7 @@ public class PbdSolverAnchorsAndCapsuleTests
         var p1 = new Vector3(1,0,0);
         var seg = p1 - p0;
         float t = Vector3.Dot(x - p0, seg) / seg.LengthSquared();
-        t = MathF.Clamp(t, 0f, 1f);
+        t = Math.Clamp(t, 0f, 1f);
         var c = p0 + seg * t;
         var dist = (x - c).Length();
         Assert.True(dist >= 0.2f - 1e-5f);
@@ -74,4 +74,3 @@ public class PbdSolverAnchorsAndCapsuleTests
         Assert.Throws<ArgumentOutOfRangeException>(() => solver.Initialize(positions, tris, p));
     }
 }
-
