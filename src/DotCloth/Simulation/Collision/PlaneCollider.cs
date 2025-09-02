@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace DotCloth.Simulation.Core;
+namespace DotCloth.Simulation.Collision;
 
 /// <summary>
 /// Infinite plane collider: dot(n, x) >= offset (outside half-space).
@@ -39,4 +39,3 @@ public sealed class PlaneCollider : ICollider
         }
     }
 }
-

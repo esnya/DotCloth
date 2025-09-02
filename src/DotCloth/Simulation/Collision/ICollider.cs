@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace DotCloth.Simulation.Core;
+namespace DotCloth.Simulation.Collision;
 
 public interface ICollider
 {
@@ -9,4 +9,3 @@ public interface ICollider
     /// </summary>
     void Resolve(Span<Vector3> positions, Span<Vector3> velocities, float deltaTime, float thickness, float friction);
 }
-

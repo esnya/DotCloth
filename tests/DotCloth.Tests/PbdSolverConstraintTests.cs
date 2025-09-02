@@ -1,5 +1,6 @@
 using System.Numerics;
 using DotCloth.Simulation.Core;
+using DotCloth.Simulation.Collision;
 using DotCloth.Simulation.Parameters;
 using Xunit;
 
@@ -99,4 +100,3 @@ public class PbdSolverConstraintTests
         Assert.True(positions[0].Y >= -1e-6f);
     }
 }
-

@@ -8,7 +8,7 @@ namespace DotCloth.Simulation.Core;
 /// </summary>
 public sealed class PbdSolver : IClothSimulator
 {
-    private ClothParameters _p = new();
+    private Config _cfg;
     private int _vertexCount;
 
     // Mass/inertia
@@ -27,8 +27,8 @@ public sealed class PbdSolver : IClothSimulator
     private Edge[] _edges = Array.Empty<Edge>();
 
     // Collision hooks (optional)
-    private readonly List<ICollider> _colliders = new();
-    public void SetColliders(IEnumerable<ICollider> colliders)
+    private readonly List<Collision.ICollider> _colliders = new();
+    public void SetColliders(IEnumerable<Collision.ICollider> colliders)
     {
         _colliders.Clear();
         _colliders.AddRange(colliders);
@@ -43,11 +43,12 @@ public sealed class PbdSolver : IClothSimulator
 
         // Mass setup (uniform per parameters)
         _invMass = new float[_vertexCount];
-        var inv = 1.0f / _p.VertexMass;
+        var inv = 1.0f / _cfg.VertexMass;
         for (int i = 0; i < _vertexCount; i++) _invMass[i] = inv;
 
         // Build unique edges from triangles and set rest lengths
-        _edges = BuildEdges(positions, triangles, _p);
+        ValidateTriangles(triangles, _vertexCount);
+        _edges = BuildEdges(positions, triangles, _cfg);
     }
 
     public void Step(float deltaTime, Span<Vector3> positions, Span<Vector3> velocities)
@@ -56,15 +57,15 @@ public sealed class PbdSolver : IClothSimulator
         if (velocities.Length != _vertexCount) throw new ArgumentException("velocities length mismatch", nameof(velocities));
         if (deltaTime <= 0) throw new ArgumentOutOfRangeException(nameof(deltaTime));
 
-        int substeps = Math.Max(1, _p.Substeps);
-        int iterations = Math.Max(1, _p.Iterations);
+        int substeps = Math.Max(1, _cfg.Substeps);
+        int iterations = Math.Max(1, _cfg.Iterations);
         float dt = deltaTime / substeps;
 
-        var gravity = _p.UseGravity ? new Vector3(0, -9.80665f * _p.GravityScale, 0) : Vector3.Zero;
-        var accel = gravity + _p.ExternalAcceleration;
+        var gravity = _cfg.UseGravity ? new Vector3(0, -9.80665f * _cfg.GravityScale, 0) : Vector3.Zero;
+        var accel = gravity + _cfg.ExternalAcceleration;
 
-        var drag = Math.Max(0f, _p.AirDrag);
-        var damping = Math.Clamp(_p.Damping, 0f, 0.999f);
+        var drag = Math.Max(0f, _cfg.AirDrag);
+        var damping = Math.Clamp(_cfg.Damping, 0f, 0.999f);
 
         var prev = new Vector3[_vertexCount];
 
@@ -125,7 +126,7 @@ public sealed class PbdSolver : IClothSimulator
             {
                 foreach (var c in _colliders)
                 {
-                    c.Resolve(positions, velocities, dt, _p.CollisionThickness, _p.Friction);
+                    c.Resolve(positions, velocities, dt, _cfg.CollisionThickness, _cfg.Friction);
                 }
             }
 
@@ -141,31 +142,20 @@ public sealed class PbdSolver : IClothSimulator
 
     public void UpdateParameters(ClothParameters parameters)
     {
-        _p = parameters ?? throw new ArgumentNullException(nameof(parameters));
-        _p.Damping = float.Clamp(_p.Damping, 0f, 0.999f);
-        _p.StretchStiffness = float.Clamp(_p.StretchStiffness, 0f, 1f);
-        _p.BendStiffness = float.Clamp(_p.BendStiffness, 0f, 1f);
-        _p.TetherStiffness = float.Clamp(_p.TetherStiffness, 0f, 1f);
-        _p.Friction = float.Clamp(_p.Friction, 0f, 1f);
-        _p.CollisionThickness = Math.Max(0f, _p.CollisionThickness);
-        _p.VertexMass = Math.Max(1e-6f, _p.VertexMass);
-        _p.AirDrag = Math.Max(0f, _p.AirDrag);
-        _p.RandomAcceleration = Math.Max(0f, _p.RandomAcceleration);
-        _p.Iterations = Math.Max(1, _p.Iterations);
-        _p.Substeps = Math.Max(1, _p.Substeps);
-        _p.ComplianceScale = Math.Max(0f, _p.ComplianceScale);
+        if (parameters is null) throw new ArgumentNullException(nameof(parameters));
+        _cfg = Config.From(parameters);
 
         // Update compliance on existing edges if any
         if (_edges.Length > 0)
         {
             for (int e = 0; e < _edges.Length; e++)
             {
-                _edges[e].Compliance = MapStiffnessToCompliance(_p.StretchStiffness, _p.ComplianceScale);
+                _edges[e].Compliance = MapStiffnessToCompliance(_cfg.StretchStiffness, _cfg.ComplianceScale);
             }
         }
     }
 
-    private static Edge[] BuildEdges(ReadOnlySpan<Vector3> positions, ReadOnlySpan<int> triangles, ClothParameters p)
+    private static Edge[] BuildEdges(ReadOnlySpan<Vector3> positions, ReadOnlySpan<int> triangles, Config cfg)
     {
         var set = new HashSet<(int, int)>();
         void Add(int a, int b)
@@ -187,7 +177,7 @@ public sealed class PbdSolver : IClothSimulator
 
         var edges = new Edge[set.Count];
         int k = 0;
-        float compliance = MapStiffnessToCompliance(p.StretchStiffness, p.ComplianceScale);
+        float compliance = MapStiffnessToCompliance(cfg.StretchStiffness, cfg.ComplianceScale);
         foreach (var (i, j) in set)
         {
             var rest = Vector3.Distance(positions[i], positions[j]);
@@ -203,5 +193,79 @@ public sealed class PbdSolver : IClothSimulator
         var s = float.Clamp(stiffness01, 0f, 1f);
         var softness = 1f - s;
         return softness * softness * Math.Max(1e-12f, scale);
+    }
+
+    private static void ValidateTriangles(ReadOnlySpan<int> tris, int vertexCount)
+    {
+        for (int t = 0; t < tris.Length; t++)
+        {
+            int idx = tris[t];
+            if ((uint)idx >= (uint)vertexCount)
+            {
+                throw new ArgumentOutOfRangeException(nameof(tris), $"triangle index {idx} out of range [0,{vertexCount - 1}]");
+            }
+        }
+    }
+
+    private readonly struct Config
+    {
+        public readonly bool UseGravity;
+        public readonly float GravityScale;
+        public readonly float Damping;
+        public readonly float AirDrag;
+        public readonly float StretchStiffness;
+        public readonly float BendStiffness;
+        public readonly float TetherStiffness;
+        public readonly float CollisionThickness;
+        public readonly float Friction;
+        public readonly float VertexMass;
+        public readonly Vector3 ExternalAcceleration;
+        public readonly float RandomAcceleration;
+        public readonly int Iterations;
+        public readonly int Substeps;
+        public readonly float ComplianceScale;
+
+        private Config(
+            bool useGravity, float gravityScale, float damping, float airDrag,
+            float stretch, float bend, float tether, float thickness, float friction,
+            float vertexMass, Vector3 externalAccel, float randomAccel, int iterations, int substeps, float complianceScale)
+        {
+            UseGravity = useGravity;
+            GravityScale = gravityScale;
+            Damping = damping;
+            AirDrag = airDrag;
+            StretchStiffness = stretch;
+            BendStiffness = bend;
+            TetherStiffness = tether;
+            CollisionThickness = thickness;
+            Friction = friction;
+            VertexMass = vertexMass;
+            ExternalAcceleration = externalAccel;
+            RandomAcceleration = randomAccel;
+            Iterations = iterations;
+            Substeps = substeps;
+            ComplianceScale = complianceScale;
+        }
+
+        public static Config From(ClothParameters p)
+        {
+            return new Config(
+                p.UseGravity,
+                Math.Max(0f, p.GravityScale),
+                float.Clamp(p.Damping, 0f, 0.999f),
+                Math.Max(0f, p.AirDrag),
+                float.Clamp(p.StretchStiffness, 0f, 1f),
+                float.Clamp(p.BendStiffness, 0f, 1f),
+                float.Clamp(p.TetherStiffness, 0f, 1f),
+                Math.Max(0f, p.CollisionThickness),
+                float.Clamp(p.Friction, 0f, 1f),
+                Math.Max(1e-6f, p.VertexMass),
+                p.ExternalAcceleration,
+                Math.Max(0f, p.RandomAcceleration),
+                Math.Max(1, p.Iterations),
+                Math.Max(1, p.Substeps),
+                Math.Max(0f, p.ComplianceScale)
+            );
+        }
     }
 }
