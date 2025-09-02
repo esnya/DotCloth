@@ -28,6 +28,12 @@ public sealed class ClothParameters
     /// <summary>Tether stiffness [0, 1].</summary>
     public float TetherStiffness { get; set; } = 0.0f;
 
+    /// <summary>
+    /// Tether length scale relative to initial distance to anchor/rest.
+    /// 1.0 keeps full length; smaller pulls cloth tighter.
+    /// </summary>
+    public float TetherLengthScale { get; set; } = 1.0f;
+
     /// <summary>Collision thickness (shell) in world units.</summary>
     public float CollisionThickness { get; set; } = 0.005f;
 

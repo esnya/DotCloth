@@ -40,6 +40,8 @@ public sealed class PbdSolver : IClothSimulator
     // Tether-to-rest constraints (per-vertex to rest position)
     private Vector3[] _rest = Array.Empty<Vector3>();
     private float[] _tetherLambda = Array.Empty<float>();
+    private int[] _tetherAnchorIndex = Array.Empty<int>();
+    private float[] _tetherAnchorRestLength = Array.Empty<float>();
 
     // Collision hooks (optional)
     private readonly List<Collision.ICollider> _colliders = new();
@@ -65,6 +67,8 @@ public sealed class PbdSolver : IClothSimulator
         _rest = new Vector3[_vertexCount];
         for (int i = 0; i < _vertexCount; i++) _rest[i] = positions[i];
         _tetherLambda = new float[_vertexCount];
+        _tetherAnchorIndex = Enumerable.Repeat(-1, _vertexCount).ToArray();
+        _tetherAnchorRestLength = new float[_vertexCount];
 
         // Build unique edges from triangles and set rest lengths
         ValidateTriangles(triangles, _vertexCount);
@@ -181,8 +185,21 @@ public sealed class PbdSolver : IClothSimulator
                         float wi = _invMass[i];
                         if (wi <= 0f) continue;
                         var xi = positions[i];
-                        var x0 = _rest[i];
-                        var d = xi - x0;
+                        Vector3 target;
+                        float targetLen;
+                        int a = _tetherAnchorIndex[i];
+                        if (a >= 0)
+                        {
+                            target = positions[a];
+                            targetLen = _tetherAnchorRestLength[i];
+                        }
+                        else
+                        {
+                            target = _rest[i];
+                            targetLen = 0f; // pull to rest position exactly
+                        }
+
+                        var d = xi - target;
                         var len = d.Length();
                         if (len <= 1e-9f)
                         {
@@ -190,7 +207,7 @@ public sealed class PbdSolver : IClothSimulator
                             continue;
                         }
                         var n = d / len;
-                        float C = len; // target is zero distance to rest
+                        float C = len - targetLen;
                         float dlambda = (-C - alphaTilde * _tetherLambda[i]) / (wi + alphaTilde);
                         _tetherLambda[i] += dlambda;
                         var corr = dlambda * n;
@@ -435,6 +452,47 @@ public sealed class PbdSolver : IClothSimulator
             int i = indices[n];
             if ((uint)i >= (uint)_vertexCount) throw new ArgumentOutOfRangeException(nameof(indices));
             _invMass[i] = 0f;
+        }
+    }
+
+    public void PinVertices(params int[] indices)
+    {
+        PinVertices((ReadOnlySpan<int>)indices);
+    }
+
+    public void SetTetherAnchors(ReadOnlySpan<int> anchors)
+    {
+        // Build nearest anchor per vertex based on rest positions
+        // Precondition: anchors indices in range
+        foreach (var a in anchors)
+        {
+            if ((uint)a >= (uint)_vertexCount)
+                throw new ArgumentOutOfRangeException(nameof(anchors));
+        }
+        if (anchors.Length == 0)
+        {
+            for (int i = 0; i < _vertexCount; i++) _tetherAnchorIndex[i] = -1;
+            return;
+        }
+        for (int i = 0; i < _vertexCount; i++)
+        {
+            int best = -1;
+            float bestD2 = float.PositiveInfinity;
+            var xi0 = _rest[i];
+            foreach (var a in anchors)
+            {
+                var d = xi0 - _rest[a];
+                float d2 = d.LengthSquared();
+                if (d2 < bestD2)
+                {
+                    bestD2 = d2;
+                    best = a;
+                }
+            }
+            _tetherAnchorIndex[i] = best;
+            float restLen = best >= 0 ? MathF.Sqrt(bestD2) * _cfg.TetherLengthScale : 0f;
+            _tetherAnchorRestLength[i] = restLen;
+            _tetherLambda[i] = 0f;
         }
     }
 }

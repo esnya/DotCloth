@@ -13,6 +13,7 @@ Core Interfaces
   - `void PinVertices(ReadOnlySpan<int> indices)` — convenience pin API
   - `void ResetRestState(ReadOnlySpan<Vector3> positions)` — recompute rest values
   - `void SetColliders(IEnumerable<Collision.ICollider> colliders)`
+  - `void SetTetherAnchors(ReadOnlySpan<int> anchors)` — define anchors for tethers
 
 Solver Settings
 - `ClothParameters.Iterations` — XPBD iterations per substep (default 8).
@@ -23,11 +24,13 @@ Collision Hooks
 - Implement `ICollider.Resolve(...)` and pass to `PbdSolver.SetColliders(...)`.
 - Included: `PlaneCollider` (infinite plane) for basic testing.
 - Included: `SphereCollider` (center + radius)
+ - Included: `CapsuleCollider` (segment + radius)
 
 Constraints
 - Stretch: unique edges from triangles, XPBD with per-edge lambdas.
 - Bending: distance across opposite vertices of adjacent triangles (XPBD). Future: dihedral angle.
 - Tether-to-rest: pulls vertices toward rest position using XPBD; not identical to UnityCloth’s “tethers” but offers stabilizing behavior. Mapping notes pending.
+ - Tether-to-anchor: nearest anchor per vertex with rest length = initial distance × `TetherLengthScale`.
 
 Threading Contract
 - Each simulator instance is independent. Methods are safe to call from multiple threads on different instances. Concurrent calls on the same instance require the caller to synchronize unless the implementation documents otherwise.
@@ -47,3 +50,4 @@ UnityCloth Mapping (WIP)
 Migration
 - 0.x breaking: `IClothSimulator` extended with `SetInverseMasses`, `ResetRestState`, and `SetColliders` for clarity and integration needs. Update implementations accordingly.
  - 0.x extension: `PinVertices` convenience added; existing pinning via `SetInverseMasses` remains valid.
+ - 0.x extension: `SetTetherAnchors` and `ClothParameters.TetherLengthScale` added for Unity-like tether behavior.
