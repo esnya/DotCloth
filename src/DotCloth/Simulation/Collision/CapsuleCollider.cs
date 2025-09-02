@@ -27,7 +27,7 @@ public sealed class CapsuleCollider : ICollider
             if (segLen2 > 1e-12f)
             {
                 t = Vector3.Dot(x - _p0, seg) / segLen2;
-                t = MathF.Clamp(t, 0f, 1f);
+                t = Math.Clamp(t, 0f, 1f);
             }
             var c = _p0 + seg * t; // closest point on segment
             var d = x - c;
@@ -47,4 +47,3 @@ public sealed class CapsuleCollider : ICollider
         }
     }
 }
-

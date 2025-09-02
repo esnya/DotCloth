@@ -379,11 +379,12 @@ public sealed class PbdSolver : IClothSimulator
         public readonly int Iterations;
         public readonly int Substeps;
         public readonly float ComplianceScale;
+        public readonly float TetherLengthScale;
 
         private Config(
             bool useGravity, float gravityScale, float damping, float airDrag,
             float stretch, float bend, float tether, float thickness, float friction,
-            float vertexMass, Vector3 externalAccel, float randomAccel, int randomSeed, int iterations, int substeps, float complianceScale)
+            float vertexMass, Vector3 externalAccel, float randomAccel, int randomSeed, int iterations, int substeps, float complianceScale, float tetherLengthScale)
         {
             UseGravity = useGravity;
             GravityScale = gravityScale;
@@ -401,6 +402,7 @@ public sealed class PbdSolver : IClothSimulator
             Iterations = iterations;
             Substeps = substeps;
             ComplianceScale = complianceScale;
+            TetherLengthScale = tetherLengthScale;
         }
 
         public static Config From(ClothParameters p)
@@ -421,7 +423,8 @@ public sealed class PbdSolver : IClothSimulator
                 p.RandomSeed,
                 Math.Max(1, p.Iterations),
                 Math.Max(1, p.Substeps),
-                Math.Max(0f, p.ComplianceScale)
+                Math.Max(0f, p.ComplianceScale),
+                Math.Max(0f, p.TetherLengthScale)
             );
         }
     }
