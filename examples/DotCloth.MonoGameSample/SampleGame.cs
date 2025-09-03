@@ -80,6 +80,7 @@ public sealed class SampleGame : Game
         if (k.IsKeyDown(Keys.D2)) LoadScenario(new CylinderScenario());
         if (k.IsKeyDown(Keys.D3)) LoadScenario(new CollidersScenario());
         if (k.IsKeyDown(Keys.D4)) LoadScenario(new LargeScenario());
+        if (k.IsKeyDown(Keys.D5)) LoadScenario(new XLargeScenario());
         if (k.IsKeyDown(Keys.R)) _scenario.Reset();
 
         // Orbit camera with right mouse drag, wheel zoom

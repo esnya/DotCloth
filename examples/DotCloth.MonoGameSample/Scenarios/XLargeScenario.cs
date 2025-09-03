@@ -6,9 +6,9 @@ using DotCloth.Simulation.Parameters;
 
 namespace DotCloth.MonoGameSample.Scenarios;
 
-internal sealed class LargeScenario : IScenario
+internal sealed class XLargeScenario : IScenario
 {
-    public string Name => "Large";
+    public string Name => "X Large";
     public IReadOnlyList<ClothSim> Cloths => _cloths;
     private readonly List<ClothSim> _cloths = new();
     private float _time;
@@ -17,20 +17,20 @@ internal sealed class LargeScenario : IScenario
     {
         _cloths.Clear();
         _time = 0f;
-        // Grid of cloth instances with per-instance moving colliders
-        int gx = 5, gz = 4; // 20 instances
+        // Heavier grid: more instances and larger cloths
+        int gx = 6, gz = 5; // 30 instances
         for (int z = 0; z < gz; z++)
         for (int x = 0; x < gx; x++)
         {
-            Geometry.MakeGrid(18, 18, 0.1f, out var pos, out var tri);
+            Geometry.MakeGrid(20, 20, 0.1f, out var pos, out var tri);
             var vel = new Vector3[pos.Length];
-            // Offset cloth in world
-            var offset = new Vector3((x - (gx-1)*0.5f) * 2.2f, 0.0f, (z - (gz-1)*0.5f) * 2.2f);
+            // Only horizontal offset; keep height same as Minimal (~1.5)
+            var offset = new Vector3((x - (gx-1)*0.5f) * 2.4f, 0.0f, (z - (gz-1)*0.5f) * 2.4f);
             for (int i = 0; i < pos.Length; i++) pos[i] += offset;
             var sim = new PbdSolver();
             sim.Initialize(pos, tri, DefaultParams());
             // Pin top row
-            int n = 18; var pins = new int[n];
+            int n = 20; var pins = new int[n];
             for (int i = 0; i < n; i++) pins[i] = (n - 1) * n + i;
             sim.PinVertices(pins);
             _cloths.Add(new ClothSim(sim, pos, vel, tri));
@@ -44,29 +44,28 @@ internal sealed class LargeScenario : IScenario
     {
         dst.Clear();
         dst.Add(new DotCloth.Simulation.Collision.PlaneCollider(new Vector3(0, 1, 0), 0f));
-        // Per-instance moving sphere around its local origin
-        int gx = 5;
+        int gx = 6;
         int ix = clothIndex % gx;
         int iz = clothIndex / gx;
-        var basePos = new Vector3((ix - (gx-1)*0.5f) * 2.2f, 0.4f, (iz - (4-1)*0.5f) * 2.2f);
-        float phase = (float)(0.5 * clothIndex);
+        var basePos = new Vector3((ix - (gx-1)*0.5f) * 2.4f, 0.45f, (iz - (5-1)*0.5f) * 2.4f);
+        float phase = (float)(0.4 * clothIndex);
         float t = _time + phase;
-        var c = basePos + new Vector3(0.5f*MathF.Sin(t), 0.1f+0.15f*MathF.Cos(1.1f*t), 0.5f*MathF.Cos(0.9f*t));
-        dst.Add(new DotCloth.Simulation.Collision.SphereCollider(c, 0.25f));
+        var c = basePos + new Vector3(0.6f*MathF.Sin(1.1f*t), 0.12f+0.18f*MathF.Cos(0.8f*t), 0.6f*MathF.Cos(0.9f*t));
+        dst.Add(new DotCloth.Simulation.Collision.SphereCollider(c, 0.28f));
     }
 
     public void GetColliderVisualsFor(int clothIndex, List<ColliderViz> dst)
     {
         dst.Clear();
         dst.Add(new ColliderViz { Kind = ColliderKind.Plane, Normal = new Vector3(0,1,0), Offset = 0f });
-        int gx = 5;
+        int gx = 6;
         int ix = clothIndex % gx;
         int iz = clothIndex / gx;
-        var basePos = new Vector3((ix - (gx-1)*0.5f) * 2.2f, 0.4f, (iz - (4-1)*0.5f) * 2.2f);
-        float phase = (float)(0.5 * clothIndex);
+        var basePos = new Vector3((ix - (gx-1)*0.5f) * 2.4f, 0.45f, (iz - (5-1)*0.5f) * 2.4f);
+        float phase = (float)(0.4 * clothIndex);
         float t = _time + phase;
-        var c = basePos + new Vector3(0.5f*MathF.Sin(t), 0.1f+0.15f*MathF.Cos(1.1f*t), 0.5f*MathF.Cos(0.9f*t));
-        dst.Add(new ColliderViz { Kind = ColliderKind.Sphere, Center = c, Radius = 0.25f });
+        var c = basePos + new Vector3(0.6f*MathF.Sin(1.1f*t), 0.12f+0.18f*MathF.Cos(0.8f*t), 0.6f*MathF.Cos(0.9f*t));
+        dst.Add(new ColliderViz { Kind = ColliderKind.Sphere, Center = c, Radius = 0.28f });
     }
 
     private static ClothParameters DefaultParams() => new()
@@ -82,3 +81,4 @@ internal sealed class LargeScenario : IScenario
         Iterations = 8
     };
 }
+
