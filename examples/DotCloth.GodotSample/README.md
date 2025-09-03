@@ -3,7 +3,7 @@ DotCloth Godot Sample
 
 Overview
 - Minimal Godot 4 C# project that integrates the DotCloth XPBD solver and renders a dynamic cloth mesh.
-- Pure code-first: the scene (`main.tscn`) attaches `Main.cs` which creates camera, light, mesh, ground, and steps the solver.
+- Pure code-first: the scene (`main.tscn`) attaches `Main.cs` which creates camera, ambient-lit environment, light, mesh, ground, and steps the solver.
 - Cross‑platform: runs on Windows/macOS/Linux with Godot 4 .NET installed.
 
 Requirements
