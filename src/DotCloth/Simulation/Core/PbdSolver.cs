@@ -647,6 +647,38 @@ public sealed class PbdSolver : IClothSimulator
     }
 
     /// <inheritdoc />
+    public void UnpinVertices(ReadOnlySpan<int> indices)
+    {
+        float inv = 1.0f / _cfg.VertexMass;
+        for (int n = 0; n < indices.Length; n++)
+        {
+            int i = indices[n];
+            if ((uint)i >= (uint)_vertexCount) throw new ArgumentOutOfRangeException(nameof(indices));
+            _invMass[i] = inv;
+        }
+        RecomputeEdgeMasses();
+        RecomputeBendMasses();
+    }
+
+    /// <inheritdoc />
+    public void UnpinVertices(params int[] indices)
+    {
+        UnpinVertices((ReadOnlySpan<int>)indices);
+    }
+
+    /// <inheritdoc />
+    public void ClearPins()
+    {
+        float inv = 1.0f / _cfg.VertexMass;
+        for (int i = 0; i < _vertexCount; i++)
+        {
+            _invMass[i] = inv;
+        }
+        RecomputeEdgeMasses();
+        RecomputeBendMasses();
+    }
+
+    /// <inheritdoc />
     public void SetTetherAnchors(ReadOnlySpan<int> anchors)
     {
         // Build nearest anchor per vertex based on rest positions

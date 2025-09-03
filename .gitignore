@@ -12,3 +12,25 @@ obj/
 .DS_Store
 Thumbs.db
 
+# Godot (project-local)
+.godot/
+.import/
+export/
+*.translation
+*.import
+*.tmp
+*.gen.*
+
+# Godot C# (NuGet cache sometimes appears in tree for local restore)
+**/Godot/mono/**
+**/.mono/**
+
+# Rider/JetBrains
+.idea/
+.fleet/
+# Test results
+**/TestResults/
+*.trx
+
+# Build artifacts
+artifacts/
