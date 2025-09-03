@@ -32,10 +32,16 @@ internal sealed class MinimalScenario : IScenario
     public void Reset() => Initialize();
     public void UpdatePreStep(float elapsedSeconds) { /* no-op */ }
 
-    public void GetColliders(List<DotCloth.Simulation.Collision.ICollider> dst)
+    public void GetCollidersFor(int clothIndex, List<DotCloth.Simulation.Collision.ICollider> dst)
     {
         dst.Clear();
         dst.Add(new DotCloth.Simulation.Collision.PlaneCollider(new Vector3(0, 1, 0), 0f)); // floor at y=0
+    }
+
+    public void GetColliderVisualsFor(int clothIndex, List<ColliderViz> dst)
+    {
+        dst.Clear();
+        dst.Add(new ColliderViz { Kind = ColliderKind.Plane, Normal = new Vector3(0,1,0), Offset = 0f });
     }
 
     private static ClothParameters DefaultParams() => new()
@@ -51,4 +57,3 @@ internal sealed class MinimalScenario : IScenario
         Iterations = 8
     };
 }
-

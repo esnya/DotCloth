@@ -21,6 +21,19 @@ internal interface IScenario
     void Initialize();
     void Reset();
     void UpdatePreStep(float elapsedSeconds);
-    void GetColliders(List<DotCloth.Simulation.Collision.ICollider> dst);
+    void GetCollidersFor(int clothIndex, List<DotCloth.Simulation.Collision.ICollider> dst);
+    void GetColliderVisualsFor(int clothIndex, List<ColliderViz> dst);
 }
 
+internal enum ColliderKind { Plane, Sphere, Capsule }
+
+internal sealed class ColliderViz
+{
+    public ColliderKind Kind { get; init; }
+    public System.Numerics.Vector3 Center { get; init; }
+    public float Radius { get; init; }
+    public System.Numerics.Vector3 P0 { get; init; }
+    public System.Numerics.Vector3 P1 { get; init; }
+    public System.Numerics.Vector3 Normal { get; init; }
+    public float Offset { get; init; }
+}

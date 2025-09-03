@@ -33,7 +33,7 @@ internal sealed class CollidersScenario : IScenario
         _time += elapsedSeconds;
     }
 
-    public void GetColliders(List<DotCloth.Simulation.Collision.ICollider> dst)
+    public void GetCollidersFor(int clothIndex, List<DotCloth.Simulation.Collision.ICollider> dst)
     {
         dst.Clear();
         // Floor
@@ -42,10 +42,22 @@ internal sealed class CollidersScenario : IScenario
         var r = 0.35f;
         var c = new Vector3(MathF.Sin(_time) * 0.6f, 0.4f + 0.2f * MathF.Cos(_time*0.7f), 0.0f);
         dst.Add(new DotCloth.Simulation.Collision.SphereCollider(c, r));
-        // Horizontal capsule sweeping under the cloth
-        var p0 = new Vector3(-0.7f, 0.25f, -0.2f);
-        var p1 = new Vector3(0.7f, 0.25f, 0.2f);
+        // Oscillating capsule sweeping under the cloth
+        var p0 = new Vector3(-0.7f + 0.2f*MathF.Sin(_time*0.5f), 0.25f, -0.2f);
+        var p1 = new Vector3( 0.7f + 0.2f*MathF.Sin(_time*0.5f), 0.25f,  0.2f);
         dst.Add(new DotCloth.Simulation.Collision.CapsuleCollider(p0, p1, 0.15f));
+    }
+
+    public void GetColliderVisualsFor(int clothIndex, List<ColliderViz> dst)
+    {
+        dst.Clear();
+        dst.Add(new ColliderViz { Kind = ColliderKind.Plane, Normal = new Vector3(0,1,0), Offset = 0f });
+        var r = 0.35f;
+        var c = new Vector3(MathF.Sin(_time) * 0.6f, 0.4f + 0.2f * MathF.Cos(_time*0.7f), 0.0f);
+        dst.Add(new ColliderViz { Kind = ColliderKind.Sphere, Center = c, Radius = r });
+        var p0 = new Vector3(-0.7f + 0.2f*MathF.Sin(_time*0.5f), 0.25f, -0.2f);
+        var p1 = new Vector3( 0.7f + 0.2f*MathF.Sin(_time*0.5f), 0.25f,  0.2f);
+        dst.Add(new ColliderViz { Kind = ColliderKind.Capsule, P0 = p0, P1 = p1, Radius = 0.15f });
     }
 
     private static ClothParameters DefaultParams() => new()
@@ -61,4 +73,3 @@ internal sealed class CollidersScenario : IScenario
         Iterations = 10
     };
 }
-

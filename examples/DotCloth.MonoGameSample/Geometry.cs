@@ -54,5 +54,42 @@ internal static class Geometry
     {
         if (a < b) set.Add((a, b)); else set.Add((b, a));
     }
-}
 
+    public static void MakeTube(int radial, int heightSeg, float radius, float height, out Vector3[] positions, out int[] triangles)
+    {
+        radial = Math.Max(3, radial);
+        heightSeg = Math.Max(1, heightSeg);
+        int rings = heightSeg + 1;
+        positions = new Vector3[radial * rings];
+        float dy = height / heightSeg;
+        for (int y = 0; y < rings; y++)
+        {
+            float py = -0.5f * height + y * dy;
+            for (int r = 0; r < radial; r++)
+            {
+                float a = (2f * MathF.PI * r) / radial;
+                float x = radius * MathF.Cos(a);
+                float z = radius * MathF.Sin(a);
+                positions[y * radial + r] = new Vector3(x, py, z);
+            }
+        }
+        var tris = new List<int>(radial * heightSeg * 6);
+        for (int y = 0; y < heightSeg; y++)
+        {
+            int y0 = y; int y1 = y + 1;
+            for (int r = 0; r < radial; r++)
+            {
+                int r0 = r;
+                int r1 = (r + 1) % radial; // wrap seam
+                int i00 = y0 * radial + r0;
+                int i01 = y0 * radial + r1;
+                int i10 = y1 * radial + r0;
+                int i11 = y1 * radial + r1;
+                // two triangles per quad
+                tris.Add(i00); tris.Add(i10); tris.Add(i01);
+                tris.Add(i10); tris.Add(i11); tris.Add(i01);
+            }
+        }
+        triangles = tris.ToArray();
+    }
+}

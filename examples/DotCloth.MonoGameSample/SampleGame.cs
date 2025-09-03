@@ -34,6 +34,7 @@ public sealed class SampleGame : Game
     private readonly List<ClothSim> _cloths = new();
     private readonly List<(int i,int j)[]> _edgesPerCloth = new();
     private readonly List<ICollider> _colliders = new();
+    private readonly List<ColliderViz> _colliderViz = new();
 
     // Input state
     private MouseState _prevMouse;
@@ -102,9 +103,12 @@ public sealed class SampleGame : Game
         const float fixedDt = 1f / 60f;
         int steps = 0; const int maxSteps = 8;
         _scenario.UpdatePreStep(elapsed);
-        _colliders.Clear();
-        _scenario.GetColliders(_colliders);
-        foreach (var c in _cloths) c.Sim.SetColliders(_colliders);
+        for (int ci = 0; ci < _cloths.Count; ci++)
+        {
+            _colliders.Clear();
+            _scenario.GetCollidersFor(ci, _colliders);
+            _cloths[ci].Sim.SetColliders(_colliders);
+        }
         _solverTicks = 0;
         long t0;
         while (_accum >= fixedDt && steps < maxSteps)
@@ -159,6 +163,9 @@ public sealed class SampleGame : Game
                 GraphicsDevice.DrawIndexedPrimitives(PrimitiveType.LineList, 0, 0, _floorIndexCount / 2);
             }
         }
+
+        // Draw colliders (dynamic)
+        DrawColliders();
 
         base.Draw(gameTime);
         UpdateWindowTitle(gameTime);
@@ -265,7 +272,8 @@ public sealed class SampleGame : Game
         _emaSolverMs = Ema(_emaSolverMs, solverMs, a);
         _emaSampleMs = Ema(_emaSampleMs, sampleMs, a);
         _emaTotalMs = Ema(_emaTotalMs, totalMs, a);
-        Window.Title = $"DotCloth MonoGame Sample — {_scenario.Name} | FPS={_emaFps:F1} | Lib={_emaSolverMs:F2}ms | App={_emaSampleMs:F2}ms | Total={_emaTotalMs:F2}ms";
+        int totalVerts = 0; foreach (var c in _cloths) totalVerts += c.Pos.Length;
+        Window.Title = $"DotCloth MonoGame Sample — {_scenario.Name} | FPS={_emaFps:F1} | Solver={_emaSolverMs:F2}ms | App={_emaSampleMs:F2}ms | Total={_emaTotalMs:F2}ms | Verts={totalVerts}";
     }
 
     private void LoadScenario(IScenario scenario)
@@ -276,5 +284,85 @@ public sealed class SampleGame : Game
         foreach (var c in _scenario.Cloths) _cloths.Add(c);
         BuildEdgeBuffers();
     }
-}
 
+    private void DrawColliders()
+    {
+        if (_effect is null) return;
+        var lines = new List<VertexPositionColor>();
+        for (int ci = 0; ci < _cloths.Count; ci++)
+        {
+            _colliderViz.Clear();
+            _scenario.GetColliderVisualsFor(ci, _colliderViz);
+            foreach (var v in _colliderViz)
+            {
+                switch (v.Kind)
+                {
+                    case ColliderKind.Plane:
+                        // Already visualized as grid
+                        break;
+                    case ColliderKind.Sphere:
+                        AddSphereLines(lines, ToXna(v.Center), v.Radius, Color.Orange);
+                        break;
+                    case ColliderKind.Capsule:
+                        AddCapsuleLines(lines, ToXna(v.P0), ToXna(v.P1), v.Radius, Color.OrangeRed);
+                        break;
+                }
+            }
+        }
+        if (lines.Count == 0) return;
+        using var vb = new VertexBuffer(GraphicsDevice, typeof(VertexPositionColor), lines.Count, BufferUsage.WriteOnly);
+        vb.SetData(lines.ToArray());
+        GraphicsDevice.SetVertexBuffer(vb);
+        using var ib = new IndexBuffer(GraphicsDevice, IndexElementSize.SixteenBits, lines.Count, BufferUsage.WriteOnly);
+        var idx = new short[lines.Count]; for (short i = 0; i < idx.Length; i++) idx[i] = i;
+        ib.SetData(idx);
+        GraphicsDevice.Indices = ib;
+        foreach (var pass in _effect.CurrentTechnique.Passes)
+        {
+            pass.Apply();
+            GraphicsDevice.DrawIndexedPrimitives(PrimitiveType.LineList, 0, 0, idx.Length / 2);
+        }
+    }
+
+    private static void AddSphereLines(List<VertexPositionColor> dst, XnaVec center, float radius, Color color)
+    {
+        int seg = 24;
+        // three great circles
+        AddCircle(dst, center, radius, new XnaVec(1,0,0), new XnaVec(0,1,0), seg, color);
+        AddCircle(dst, center, radius, new XnaVec(1,0,0), new XnaVec(0,0,1), seg, color);
+        AddCircle(dst, center, radius, new XnaVec(0,1,0), new XnaVec(0,0,1), seg, color);
+    }
+
+    private static void AddCapsuleLines(List<VertexPositionColor> dst, XnaVec p0, XnaVec p1, float radius, Color color)
+    {
+        int seg = 16;
+        // body circles at ends
+        var axis = Vector3.Normalize(p1 - p0);
+        var up = Vector3.Dot(axis, Vector3.Up) > 0.9f ? Vector3.Right : Vector3.Up;
+        var t = Vector3.Normalize(Vector3.Cross(axis, up));
+        var b = Vector3.Normalize(Vector3.Cross(axis, t));
+        AddCircle(dst, p0, radius, t, b, seg, color);
+        AddCircle(dst, p1, radius, t, b, seg, color);
+        // longitudinal lines
+        for (int i = 0; i < 4; i++)
+        {
+            float a = (float)(i * Math.PI * 0.5);
+            var dir = (float)Math.Cos(a) * t + (float)Math.Sin(a) * b;
+            dst.Add(new VertexPositionColor(p0 + dir * radius, color));
+            dst.Add(new VertexPositionColor(p1 + dir * radius, color));
+        }
+    }
+
+    private static void AddCircle(List<VertexPositionColor> dst, XnaVec center, float radius, XnaVec u, XnaVec v, int seg, Color color)
+    {
+        for (int i = 0; i < seg; i++)
+        {
+            float a0 = (float)(2 * Math.PI * i / seg);
+            float a1 = (float)(2 * Math.PI * (i+1) / seg);
+            var p0 = center + (float)Math.Cos(a0) * u * radius + (float)Math.Sin(a0) * v * radius;
+            var p1 = center + (float)Math.Cos(a1) * u * radius + (float)Math.Sin(a1) * v * radius;
+            dst.Add(new VertexPositionColor(p0, color));
+            dst.Add(new VertexPositionColor(p1, color));
+        }
+    }
+}

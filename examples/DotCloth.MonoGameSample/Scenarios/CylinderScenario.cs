@@ -15,14 +15,14 @@ internal sealed class CylinderScenario : IScenario
     public void Initialize()
     {
         _cloths.Clear();
-        // Slightly larger grid to interact with tube
-        Geometry.MakeGrid(26, 26, 0.11f, out var pos, out var tri);
+        // Closed tube cloth: roll a grid around Y-axis and stitch seam
+        Geometry.MakeTube(radial: 32, heightSeg: 24, radius: 0.6f, height: 1.6f, out var pos, out var tri);
         var vel = new Vector3[pos.Length];
         var sim = new PbdSolver();
         sim.Initialize(pos, tri, DefaultParams());
-        // Pin a row near one edge to suspend as it drops
-        var n = 26; var pins = new int[n];
-        for (int i = 0; i < n; i++) pins[i] = i; // top row
+        // Pin top ring to keep tube hanging
+        var pins = new int[32];
+        for (int i = 0; i < 32; i++) pins[i] = i; // first ring indices
         sim.PinVertices(pins);
         _cloths.Add(new ClothSim(sim, pos, vel, tri));
     }
@@ -30,22 +30,16 @@ internal sealed class CylinderScenario : IScenario
     public void Reset() => Initialize();
     public void UpdatePreStep(float elapsedSeconds) { }
 
-    public void GetColliders(List<DotCloth.Simulation.Collision.ICollider> dst)
+    public void GetCollidersFor(int clothIndex, List<DotCloth.Simulation.Collision.ICollider> dst)
     {
         dst.Clear();
         dst.Add(new DotCloth.Simulation.Collision.PlaneCollider(new Vector3(0, 1, 0), 0f));
-        // Build an approximate vertical cylinder around Y-axis using capsules
-        float radius = 0.6f; float halfHeight = 0.8f; float segRadius = 0.08f;
-        int sides = 12;
-        for (int s = 0; s < sides; s++)
-        {
-            float a0 = (s * 2f * MathF.PI) / sides;
-            float x = radius * MathF.Cos(a0);
-            float z = radius * MathF.Sin(a0);
-            var p0 = new Vector3(x, -halfHeight, z);
-            var p1 = new Vector3(x, halfHeight, z);
-            dst.Add(new DotCloth.Simulation.Collision.CapsuleCollider(p0, p1, segRadius));
-        }
+    }
+
+    public void GetColliderVisualsFor(int clothIndex, List<ColliderViz> dst)
+    {
+        dst.Clear();
+        dst.Add(new ColliderViz { Kind = ColliderKind.Plane, Normal = new Vector3(0,1,0), Offset = 0f });
     }
 
     private static ClothParameters DefaultParams() => new()
@@ -61,4 +55,3 @@ internal sealed class CylinderScenario : IScenario
         Iterations = 10
     };
 }
-

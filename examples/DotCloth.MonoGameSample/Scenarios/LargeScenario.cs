@@ -15,20 +15,20 @@ internal sealed class LargeScenario : IScenario
     public void Initialize()
     {
         _cloths.Clear();
-        // Grid of small cloth instances with floor and a couple of colliders
-        int gx = 4, gz = 3; // 12 instances
+        // Grid of cloth instances with per-instance moving colliders
+        int gx = 5, gz = 4; // 20 instances
         for (int z = 0; z < gz; z++)
         for (int x = 0; x < gx; x++)
         {
-            Geometry.MakeGrid(14, 14, 0.1f, out var pos, out var tri);
+            Geometry.MakeGrid(18, 18, 0.1f, out var pos, out var tri);
             var vel = new Vector3[pos.Length];
             // Offset cloth in world
-            var offset = new Vector3((x - (gx-1)*0.5f) * 2.0f, 1.5f, (z - (gz-1)*0.5f) * 2.0f);
+            var offset = new Vector3((x - (gx-1)*0.5f) * 2.2f, 1.6f, (z - (gz-1)*0.5f) * 2.2f);
             for (int i = 0; i < pos.Length; i++) pos[i] += offset;
             var sim = new PbdSolver();
             sim.Initialize(pos, tri, DefaultParams());
             // Pin top row
-            int n = 14; var pins = new int[n];
+            int n = 18; var pins = new int[n];
             for (int i = 0; i < n; i++) pins[i] = (n - 1) * n + i;
             sim.PinVertices(pins);
             _cloths.Add(new ClothSim(sim, pos, vel, tri));
@@ -38,14 +38,31 @@ internal sealed class LargeScenario : IScenario
     public void Reset() => Initialize();
     public void UpdatePreStep(float elapsedSeconds) { }
 
-    public void GetColliders(List<DotCloth.Simulation.Collision.ICollider> dst)
+    public void GetCollidersFor(int clothIndex, List<DotCloth.Simulation.Collision.ICollider> dst)
     {
         dst.Clear();
         dst.Add(new DotCloth.Simulation.Collision.PlaneCollider(new Vector3(0, 1, 0), 0f));
-        // Static spheres scattered
-        dst.Add(new DotCloth.Simulation.Collision.SphereCollider(new Vector3( 1.8f, 0.3f, 0.0f), 0.25f));
-        dst.Add(new DotCloth.Simulation.Collision.SphereCollider(new Vector3(-1.8f, 0.35f, 1.5f), 0.3f));
-        dst.Add(new DotCloth.Simulation.Collision.SphereCollider(new Vector3( 0.0f, 0.25f,-1.5f), 0.22f));
+        // Per-instance moving sphere around its local origin
+        int gx = 5;
+        int ix = clothIndex % gx;
+        int iz = clothIndex / gx;
+        var basePos = new Vector3((ix - (gx-1)*0.5f) * 2.2f, 0.3f, (iz - (4-1)*0.5f) * 2.2f);
+        float t = (float)(0.7 * clothIndex);
+        var c = basePos + new Vector3(0.5f*MathF.Sin(t), 0.1f+0.15f*MathF.Cos(1.1f*t), 0.5f*MathF.Cos(0.9f*t));
+        dst.Add(new DotCloth.Simulation.Collision.SphereCollider(c, 0.25f));
+    }
+
+    public void GetColliderVisualsFor(int clothIndex, List<ColliderViz> dst)
+    {
+        dst.Clear();
+        dst.Add(new ColliderViz { Kind = ColliderKind.Plane, Normal = new Vector3(0,1,0), Offset = 0f });
+        int gx = 5;
+        int ix = clothIndex % gx;
+        int iz = clothIndex / gx;
+        var basePos = new Vector3((ix - (gx-1)*0.5f) * 2.2f, 0.3f, (iz - (4-1)*0.5f) * 2.2f);
+        float t = (float)(0.7 * clothIndex);
+        var c = basePos + new Vector3(0.5f*MathF.Sin(t), 0.1f+0.15f*MathF.Cos(1.1f*t), 0.5f*MathF.Cos(0.9f*t));
+        dst.Add(new ColliderViz { Kind = ColliderKind.Sphere, Center = c, Radius = 0.25f });
     }
 
     private static ClothParameters DefaultParams() => new()
@@ -61,4 +78,3 @@ internal sealed class LargeScenario : IScenario
         Iterations = 8
     };
 }
-
