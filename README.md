@@ -47,6 +47,14 @@ Contributing
 - Follow the rules in `AGENTS.md`.
 - Keep changes cohesive, documented, and covered by tests.
 
+Godot Sample
+- Requirements: Godot 4.2+ with .NET (4.3 recommended) and .NET SDK 8.0.
+- Open `examples/DotCloth.GodotSample` in the Godot editor and press Play.
+- The library multi‑targets `net9.0;net8.0` so Godot can consume `net8.0`.
+- The sample is included in the solution but disabled from default builds to keep CI green.
+
+![Godot sample](docs/samples/images/godot-sample.svg)
+
 License
 - Apache License 2.0. See `LICENSE` and `NOTICE`.
 

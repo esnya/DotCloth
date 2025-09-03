@@ -41,6 +41,15 @@ public interface IClothSimulator
     /// <summary>Pins given vertex indices by setting inverse mass to zero.</summary>
     void PinVertices(params int[] indices);
 
+    /// <summary>Unpins given vertex indices by restoring inverse mass to default.</summary>
+    void UnpinVertices(ReadOnlySpan<int> indices);
+
+    /// <summary>Unpins given vertex indices by restoring inverse mass to default.</summary>
+    void UnpinVertices(params int[] indices);
+
+    /// <summary>Clears all pins (restore all inverse masses to default).</summary>
+    void ClearPins();
+
     /// <summary>Define tether anchors (by vertex indices). Nearest anchor per vertex is used.</summary>
     void SetTetherAnchors(ReadOnlySpan<int> anchors);
 }

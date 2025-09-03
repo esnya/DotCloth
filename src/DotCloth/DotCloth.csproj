@@ -5,7 +5,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>DotCloth</PackageId>
     <Authors>DotCloth Team</Authors>
-    <Description>High-performance, UnityCloth-concept compatible XPBD cloth simulation library for .NET 9.0. Deterministic, thread-safe API with tests and CI.</Description>
+    <Description>High-performance, UnityCloth-concept compatible XPBD cloth simulation library for .NET (net9.0, net8.0). Deterministic, thread-safe API with tests and CI.</Description>
     <PackageTags>cloth;PBD;XPBD;UnityCloth;simulation;physics</PackageTags>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
@@ -13,6 +13,10 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <EnablePackageValidation>true</EnablePackageValidation>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- Multi-target to enable Godot .NET (net8.0) sample without affecting other projects (default net9.0). -->
+    <TargetFrameworks>net9.0;net8.0</TargetFrameworks>
+    <!-- Override Directory.Build.props single-target default -->
+    <TargetFramework></TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <None Include="../../README.md" Pack="true" PackagePath="/" />

@@ -28,7 +28,6 @@ export/
 # Rider/JetBrains
 .idea/
 .fleet/
-
 # Test results
 **/TestResults/
 *.trx
