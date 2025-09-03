@@ -5,7 +5,8 @@ using Microsoft.Xna.Framework.Input;
 using DotCloth.Simulation;
 using DotCloth.Simulation.Core;
 using DotCloth.Simulation.Parameters;
-using System.Numerics;
+using XnaVec = Microsoft.Xna.Framework.Vector3;
+using NVec = System.Numerics.Vector3;
 
 namespace DotCloth.MonoGameSample;
 
@@ -24,8 +25,8 @@ public sealed class SampleGame : Game
 
     // Cloth state
     private IClothSimulator _sim = new PbdSolver();
-    private Vector3[] _pos = Array.Empty<Vector3>();
-    private Vector3[] _vel = Array.Empty<Vector3>();
+    private NVec[] _pos = Array.Empty<NVec>();
+    private NVec[] _vel = Array.Empty<NVec>();
     private int[] _tri = Array.Empty<int>();
 
     // Input state
@@ -50,7 +51,7 @@ public sealed class SampleGame : Game
         // Build a simple quad cloth (NxN grid)
         const int n = 20;
         Geometry.MakeGrid(n, n, 0.1f, out _pos, out _tri);
-        _vel = new Vector3[_pos.Length];
+        _vel = new NVec[_pos.Length];
 
         var p = new ClothParameters
         {
@@ -113,7 +114,7 @@ public sealed class SampleGame : Game
 
         // Camera matrices
         var eye = ToXna(Orbit(_yaw, _pitch) * _dist);
-        var view = Matrix.CreateLookAt(eye, Vector3.Zero, Vector3.Up);
+        var view = Matrix.CreateLookAt(eye, XnaVec.Zero, XnaVec.Up);
         var proj = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45f),
             GraphicsDevice.Viewport.AspectRatio, 0.05f, 100f);
         _effect.View = view;
@@ -174,15 +175,14 @@ public sealed class SampleGame : Game
         _vb.SetData(verts);
     }
 
-    private static Microsoft.Xna.Framework.Vector3 ToXna(System.Numerics.Vector3 v)
+    private static XnaVec ToXna(NVec v)
         => new(v.X, v.Y, v.Z);
 
-    private static System.Numerics.Vector3 Orbit(float yaw, float pitch)
+    private static NVec Orbit(float yaw, float pitch)
     {
         var cy = MathF.Cos(yaw); var sy = MathF.Sin(yaw);
         var cp = MathF.Cos(pitch); var sp = MathF.Sin(pitch);
         // Spherical to Cartesian around origin
-        return new System.Numerics.Vector3(cp * cy, sp, cp * sy);
+        return new NVec(cp * cy, sp, cp * sy);
     }
 }
-
