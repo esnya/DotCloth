@@ -20,9 +20,10 @@ Pre‑release Checklist (0.1.0 example)
    - `dotnet build -c Release`
    - `dotnet test -c Release`
    - `dotnet build examples/DotCloth.MonoGameSample -c Release` (build only; no GUI).
-3) Bump version in library csproj:
-   - Edit `src/DotCloth/DotCloth.csproj` `<Version>0.1.0</Version>`.
+3) Bump version in the centralized `Directory.Build.props` (SSOT):
+   - Edit `Directory.Build.props` `<Version>0.1.0</Version>`.
    - Commit: `chore(release): 🔖 bump to 0.1.0`.
+   - Alternatively, use the `Release (manual)` workflow which performs this step for you.
 4) Changelog / Release notes:
    - Option A: Update `CHANGELOG.md` (added/changed/fixed/ci/docs).
    - Option B: Prepare GitHub Release notes (see template below).
