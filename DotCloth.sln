@@ -8,51 +8,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.Tests", "tests/Dot
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.Perf", "perf/DotCloth.Perf/DotCloth.Perf.csproj", "{2C0C2D7E-20C5-4B30-985A-32B9C230E0E7}"
 EndProject
-<<<<<<< HEAD
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.MonoGameSample", "examples/DotCloth.MonoGameSample/DotCloth.MonoGameSample.csproj", "{B86AB089-BC15-4906-AD3F-B79504556598}"
-=======
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.GodotSample", "examples/DotCloth.GodotSample/DotCloth.GodotSample.csproj", "{8D5B29C0-5A4A-4F8F-9DC7-1A3E5E0E9C10}"
->>>>>>> 28745e8 (feat(examples): ✨ Add Godot 4 .NET sample (code-first), multi-target core to net8.0; docs + README; sln includes Godot project; add .gitignore; update for Godot 4.4.1)
-EndProject
-Global
-    GlobalSection(SolutionConfigurationPlatforms) = preSolution
-        Debug|Any CPU = Debug|Any CPU
-        Release|Any CPU = Release|Any CPU
-    EndGlobalSection
-    GlobalSection(ProjectConfigurationPlatforms) = postSolution
-        {D5939F3D-552B-4CF9-AB2E-6D743A9EFD1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-        {D5939F3D-552B-4CF9-AB2E-6D743A9EFD1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-        {D5939F3D-552B-4CF9-AB2E-6D743A9EFD1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-        {D5939F3D-552B-4CF9-AB2E-6D743A9EFD1E}.Release|Any CPU.Build.0 = Release|Any CPU
-        {D44C6A9C-4D35-49A0-B6F1-5B7E3AE691AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-        {D44C6A9C-4D35-49A0-B6F1-5B7E3AE691AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-        {D44C6A9C-4D35-49A0-B6F1-5B7E3AE691AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-        {D44C6A9C-4D35-49A0-B6F1-5B7E3AE691AB}.Release|Any CPU.Build.0 = Release|Any CPU
-        {2C0C2D7E-20C5-4B30-985A-32B9C230E0E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-        {2C0C2D7E-20C5-4B30-985A-32B9C230E0E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-        {2C0C2D7E-20C5-4B30-985A-32B9C230E0E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-        {2C0C2D7E-20C5-4B30-985A-32B9C230E0E7}.Release|Any CPU.Build.0 = Release|Any CPU
-<<<<<<< HEAD
-        {B86AB089-BC15-4906-AD3F-B79504556598}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-        {B86AB089-BC15-4906-AD3F-B79504556598}.Debug|Any CPU.Build.0 = Debug|Any CPU
-        {B86AB089-BC15-4906-AD3F-B79504556598}.Release|Any CPU.ActiveCfg = Release|Any CPU
-        {B86AB089-BC15-4906-AD3F-B79504556598}.Release|Any CPU.Build.0 = Release|Any CPU
-=======
-        {8D5B29C0-5A4A-4F8F-9DC7-1A3E5E0E9C10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-        {8D5B29C0-5A4A-4F8F-9DC7-1A3E5E0E9C10}.Release|Any CPU.ActiveCfg = Release|Any CPU
->>>>>>> 28745e8 (feat(examples): ✨ Add Godot 4 .NET sample (code-first), multi-target core to net8.0; docs + README; sln includes Godot project; add .gitignore; update for Godot 4.4.1)
-    EndGlobalSection
-EndGlobal
-Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31903.59
-MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth", "src/DotCloth/DotCloth.csproj", "{D5939F3D-552B-4CF9-AB2E-6D743A9EFD1E}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.Tests", "tests/DotCloth.Tests/DotCloth.Tests.csproj", "{D44C6A9C-4D35-49A0-B6F1-5B7E3AE691AB}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.Perf", "perf/DotCloth.Perf/DotCloth.Perf.csproj", "{2C0C2D7E-20C5-4B30-985A-32B9C230E0E7}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.MonoGameSample", "examples/DotCloth.MonoGameSample/DotCloth.MonoGameSample.csproj", "{B86AB089-BC15-4906-AD3F-B79504556598}"
 EndProject
 Global
