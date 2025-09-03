@@ -6,6 +6,9 @@ DotCloth
 
 High‑performance, UnityCloth‑compatible eXtended PBD (XPBD) cloth simulation library targeting .NET 9.0. DotCloth aims to mirror UnityCloth’s parameter model while adopting recent PBD/XPBD research for performance, robustness, and ease of integration.
 
+Screenshot
+- ![MonoGame sample screenshot](docs/images/sample-monogame.png)
+
 Goals
 - UnityCloth‑compatible parameter structure and behavior alignment where practical.
 - Cross‑platform .NET 9.0 library with strong static safety (nullable enabled, warnings as errors).
