@@ -1,29 +1,34 @@
-name: ci
+name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master, main, feature/** ]
   pull_request:
-    branches: [ main ]
+    branches: [ master, main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: |
+            9.0.x
+            8.0.x
+
       - name: Restore
         run: dotnet restore
+
       - name: Build (Release)
-        run: dotnet build --configuration Release --no-restore
-      - name: Test
-        run: dotnet test --configuration Release --no-build --collect:"XPlat Code Coverage"
-      - name: Pack (Release)
-        run: dotnet pack src/DotCloth/DotCloth.csproj --configuration Release --no-build -o ./artifacts
-      - name: Upload package artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dotcloth-packages
-          path: artifacts/*.nupkg
+        run: dotnet build -c Release --no-restore
+
+      - name: Test (Release)
+        run: dotnet test -c Release --no-build --verbosity normal
+
+      - name: Build MonoGame Sample (Release)
+        run: dotnet build examples/DotCloth.MonoGameSample -c Release --no-restore
+
