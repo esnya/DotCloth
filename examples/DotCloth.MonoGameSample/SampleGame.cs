@@ -35,9 +35,14 @@ public sealed class SampleGame : Game
     private readonly List<(int i,int j)[]> _edgesPerCloth = new();
     private readonly List<ICollider> _colliders = new();
     private readonly List<ColliderViz> _colliderViz = new();
+    private readonly List<VertexPositionColor> _colliderLines = new();
+    private VertexBuffer? _colliderVb;
+    private IndexBuffer? _colliderIb;
+    private int _colliderIndexCount;
 
     // Input state
     private MouseState _prevMouse;
+    private KeyboardState _prevKeys;
 
     // Perf state
     private long _solverTicks;
@@ -76,12 +81,20 @@ public sealed class SampleGame : Game
     {
         var k = Keyboard.GetState();
         if (k.IsKeyDown(Keys.Escape)) Exit();
-        if (k.IsKeyDown(Keys.D1)) LoadScenario(new MinimalScenario());
-        if (k.IsKeyDown(Keys.D2)) LoadScenario(new CylinderScenario());
-        if (k.IsKeyDown(Keys.D3)) LoadScenario(new CollidersScenario());
-        if (k.IsKeyDown(Keys.D4)) LoadScenario(new LargeScenario());
-        if (k.IsKeyDown(Keys.D5)) LoadScenario(new XLargeScenario());
-        if (k.IsKeyDown(Keys.R)) _scenario.Reset();
+        // Edge-triggered keys to avoid repeated reloads while held
+        if (k.IsKeyDown(Keys.D1) && !_prevKeys.IsKeyDown(Keys.D1)) LoadScenario(new MinimalScenario());
+        if (k.IsKeyDown(Keys.D2) && !_prevKeys.IsKeyDown(Keys.D2)) LoadScenario(new CylinderScenario());
+        if (k.IsKeyDown(Keys.D3) && !_prevKeys.IsKeyDown(Keys.D3)) LoadScenario(new CollidersScenario());
+        if (k.IsKeyDown(Keys.D4) && !_prevKeys.IsKeyDown(Keys.D4)) LoadScenario(new LargeScenario());
+        if (k.IsKeyDown(Keys.D5) && !_prevKeys.IsKeyDown(Keys.D5)) LoadScenario(new XLargeScenario());
+        if (k.IsKeyDown(Keys.R) && !_prevKeys.IsKeyDown(Keys.R))
+        {
+            _scenario.Reset();
+            // Reload cloth references after reset and rebuild buffers
+            _cloths.Clear();
+            foreach (var c in _scenario.Cloths) _cloths.Add(c);
+            BuildEdgeBuffers();
+        }
 
         // Orbit camera with right mouse drag, wheel zoom
         var m = Mouse.GetState();
@@ -95,6 +108,7 @@ public sealed class SampleGame : Game
         var wheelDelta = m.ScrollWheelValue - _prevMouse.ScrollWheelValue;
         _dist = MathHelper.Clamp(_dist - wheelDelta * 0.0025f, 2f, 20f);
         _prevMouse = m;
+        _prevKeys = k;
 
         // Fixed-step update with accumulator
         float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -199,6 +213,7 @@ public sealed class SampleGame : Game
         _indexCount = indices.Length;
     }
 
+    private VertexPositionColor[] _edgeVertsScratch = Array.Empty<VertexPositionColor>();
     private void UpdateEdgeVertices()
     {
         if (_vb is null) return;
@@ -214,7 +229,8 @@ public sealed class SampleGame : Game
             _ib.SetData(idx);
             _indexCount = idx.Length;
         }
-        var verts = new VertexPositionColor[needed];
+        if (_edgeVertsScratch.Length < needed) _edgeVertsScratch = new VertexPositionColor[needed];
+        var verts = _edgeVertsScratch;
         int k = 0;
         for (int ci = 0; ci < _cloths.Count; ci++)
         {
@@ -227,7 +243,7 @@ public sealed class SampleGame : Game
                 verts[k++] = new VertexPositionColor(ToXna(c.Pos[j]), Color.White);
             }
         }
-        _vb.SetData(verts);
+        _vb.SetData(verts, 0, needed);
     }
 
     private int TotalEdgeVertexCount()
@@ -297,7 +313,7 @@ public sealed class SampleGame : Game
     private void DrawColliders()
     {
         if (_effect is null) return;
-        var lines = new List<VertexPositionColor>();
+        var lines = _colliderLines;
         for (int ci = 0; ci < _cloths.Count; ci++)
         {
             _colliderViz.Clear();
@@ -319,17 +335,29 @@ public sealed class SampleGame : Game
             }
         }
         if (lines.Count == 0) return;
-        using var vb = new VertexBuffer(GraphicsDevice, typeof(VertexPositionColor), lines.Count, BufferUsage.WriteOnly);
-        vb.SetData(lines.ToArray());
-        GraphicsDevice.SetVertexBuffer(vb);
-        using var ib = new IndexBuffer(GraphicsDevice, IndexElementSize.ThirtyTwoBits, lines.Count, BufferUsage.WriteOnly);
-        var idx = new int[lines.Count]; for (int i = 0; i < idx.Length; i++) idx[i] = i;
-        ib.SetData(idx);
-        GraphicsDevice.Indices = ib;
+        EnsureColliderBuffers(lines.Count);
+        _colliderVb!.SetData(lines.ToArray());
+        GraphicsDevice.SetVertexBuffer(_colliderVb);
+        GraphicsDevice.Indices = _colliderIb;
         foreach (var pass in _effect.CurrentTechnique.Passes)
         {
             pass.Apply();
-            GraphicsDevice.DrawIndexedPrimitives(PrimitiveType.LineList, 0, 0, idx.Length / 2);
+            GraphicsDevice.DrawIndexedPrimitives(PrimitiveType.LineList, 0, 0, _colliderIndexCount / 2);
+        }
+        lines.Clear();
+    }
+
+    private void EnsureColliderBuffers(int vertexCount)
+    {
+        if (_colliderVb is null || _colliderVb.VertexCount < vertexCount)
+        {
+            _colliderVb?.Dispose();
+            _colliderVb = new VertexBuffer(GraphicsDevice, typeof(VertexPositionColor), vertexCount, BufferUsage.WriteOnly);
+            var idx = new int[vertexCount]; for (int i = 0; i < idx.Length; i++) idx[i] = i;
+            _colliderIb?.Dispose();
+            _colliderIb = new IndexBuffer(GraphicsDevice, IndexElementSize.ThirtyTwoBits, idx.Length, BufferUsage.WriteOnly);
+            _colliderIb.SetData(idx);
+            _colliderIndexCount = idx.Length;
         }
     }
 
