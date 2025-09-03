@@ -191,9 +191,9 @@ public sealed class SampleGame : Game
         var totalVerts = TotalEdgeVertexCount();
         if (totalVerts == 0) totalVerts = 2;
         _vb = new VertexBuffer(GraphicsDevice, typeof(VertexPositionColor), totalVerts, BufferUsage.WriteOnly);
-        var indices = new short[totalVerts];
-        for (short i = 0; i < indices.Length; i++) indices[i] = i;
-        _ib = new IndexBuffer(GraphicsDevice, IndexElementSize.SixteenBits, indices.Length, BufferUsage.WriteOnly);
+        var indices = new int[totalVerts];
+        for (int i = 0; i < indices.Length; i++) indices[i] = i;
+        _ib = new IndexBuffer(GraphicsDevice, IndexElementSize.ThirtyTwoBits, indices.Length, BufferUsage.WriteOnly);
         _ib.SetData(indices);
         _indexCount = indices.Length;
     }
@@ -207,9 +207,9 @@ public sealed class SampleGame : Game
         {
             _vb.Dispose();
             _vb = new VertexBuffer(GraphicsDevice, typeof(VertexPositionColor), needed, BufferUsage.WriteOnly);
-            var idx = new short[needed]; for (short i = 0; i < idx.Length; i++) idx[i] = i;
+            var idx = new int[needed]; for (int i = 0; i < idx.Length; i++) idx[i] = i;
             _ib?.Dispose();
-            _ib = new IndexBuffer(GraphicsDevice, IndexElementSize.SixteenBits, idx.Length, BufferUsage.WriteOnly);
+            _ib = new IndexBuffer(GraphicsDevice, IndexElementSize.ThirtyTwoBits, idx.Length, BufferUsage.WriteOnly);
             _ib.SetData(idx);
             _indexCount = idx.Length;
         }
@@ -321,8 +321,8 @@ public sealed class SampleGame : Game
         using var vb = new VertexBuffer(GraphicsDevice, typeof(VertexPositionColor), lines.Count, BufferUsage.WriteOnly);
         vb.SetData(lines.ToArray());
         GraphicsDevice.SetVertexBuffer(vb);
-        using var ib = new IndexBuffer(GraphicsDevice, IndexElementSize.SixteenBits, lines.Count, BufferUsage.WriteOnly);
-        var idx = new short[lines.Count]; for (short i = 0; i < idx.Length; i++) idx[i] = i;
+        using var ib = new IndexBuffer(GraphicsDevice, IndexElementSize.ThirtyTwoBits, lines.Count, BufferUsage.WriteOnly);
+        var idx = new int[lines.Count]; for (int i = 0; i < idx.Length; i++) idx[i] = i;
         ib.SetData(idx);
         GraphicsDevice.Indices = ib;
         foreach (var pass in _effect.CurrentTechnique.Passes)

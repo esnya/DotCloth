@@ -18,8 +18,8 @@ internal sealed class CollidersScenario : IScenario
         _cloths.Clear();
         int n = 24;
         Geometry.MakeGrid(n, n, 0.12f, out var pos, out var tri);
-        // Lower the cloth so it can contact colliders
-        for (int i = 0; i < pos.Length; i++) pos[i].Y -= 1.0f; // from 1.5 -> 0.5
+        // Set height close to Minimal; let it sag to just touch the floor
+        for (int i = 0; i < pos.Length; i++) pos[i].Y -= 0.2f; // from 1.5 -> ~1.3
         var vel = new Vector3[pos.Length];
         var sim = new PbdSolver();
         sim.Initialize(pos, tri, DefaultParams());
