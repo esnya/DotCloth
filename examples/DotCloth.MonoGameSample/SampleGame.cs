@@ -22,6 +22,7 @@ public sealed class SampleGame : Game
     private float _yaw = 0.6f;
     private float _pitch = 0.6f;
     private float _dist = 6f;
+    private float _accum; // fixed-step accumulator
 
     // Cloth state
     private IClothSimulator _sim = new PbdSolver();
@@ -96,13 +97,23 @@ public sealed class SampleGame : Game
             _yaw += dx * 0.01f;
             _pitch = MathHelper.Clamp(_pitch + dy * 0.01f, -1.2f, 1.2f);
         }
-        _dist = MathHelper.Clamp(_dist - m.ScrollWheelValue * 0.0005f, 2f, 20f);
+        var wheelDelta = m.ScrollWheelValue - _prevMouse.ScrollWheelValue;
+        _dist = MathHelper.Clamp(_dist - wheelDelta * 0.0025f, 2f, 20f);
         _prevMouse = m;
 
-        // Step simulation at fixed dt
-        float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
-        dt = MathF.Min(dt, 1f / 60f);
-        _sim.Step(dt, _pos, _vel);
+        // Fixed-step update with accumulator to avoid zero/unstable dt
+        float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
+        if (float.IsNaN(elapsed) || elapsed < 0f) elapsed = 0f;
+        elapsed = MathF.Min(elapsed, 0.25f);
+        _accum = MathF.Min(_accum + elapsed, 0.25f);
+        const float fixedDt = 1f / 60f;
+        int steps = 0; const int maxSteps = 8;
+        while (_accum >= fixedDt && steps < maxSteps)
+        {
+            _sim.Step(fixedDt, _pos, _vel);
+            _accum -= fixedDt;
+            steps++;
+        }
 
         base.Update(gameTime);
     }
