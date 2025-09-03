@@ -1,3 +1,6 @@
+Note
+- This repository’s code and documentation annotations are 100% produced with Codex (OpenAI) assistance and maintained under human review.
+
 DotCloth
 ========
 
