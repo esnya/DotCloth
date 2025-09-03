@@ -1,0 +1,64 @@
+using System.Collections.Generic;
+using System.Numerics;
+using DotCloth.Simulation;
+using DotCloth.Simulation.Core;
+using DotCloth.Simulation.Parameters;
+
+namespace DotCloth.MonoGameSample.Scenarios;
+
+internal sealed class CollidersScenario : IScenario
+{
+    public string Name => "Colliders";
+    public IReadOnlyList<ClothSim> Cloths => _cloths;
+    private readonly List<ClothSim> _cloths = new();
+    private float _time;
+
+    public void Initialize()
+    {
+        _cloths.Clear();
+        Geometry.MakeGrid(24, 24, 0.12f, out var pos, out var tri);
+        var vel = new Vector3[pos.Length];
+        var sim = new PbdSolver();
+        sim.Initialize(pos, tri, DefaultParams());
+        // Pin two corners
+        sim.PinVertices(0, 23, 24*24-24, 24*24-1);
+        _cloths.Add(new ClothSim(sim, pos, vel, tri));
+        _time = 0f;
+    }
+
+    public void Reset() => Initialize();
+
+    public void UpdatePreStep(float elapsedSeconds)
+    {
+        _time += elapsedSeconds;
+    }
+
+    public void GetColliders(List<DotCloth.Simulation.Collision.ICollider> dst)
+    {
+        dst.Clear();
+        // Floor
+        dst.Add(new DotCloth.Simulation.Collision.PlaneCollider(new Vector3(0, 1, 0), 0f));
+        // Moving sphere
+        var r = 0.35f;
+        var c = new Vector3(MathF.Sin(_time) * 0.6f, 0.4f + 0.2f * MathF.Cos(_time*0.7f), 0.0f);
+        dst.Add(new DotCloth.Simulation.Collision.SphereCollider(c, r));
+        // Horizontal capsule sweeping under the cloth
+        var p0 = new Vector3(-0.7f, 0.25f, -0.2f);
+        var p1 = new Vector3(0.7f, 0.25f, 0.2f);
+        dst.Add(new DotCloth.Simulation.Collision.CapsuleCollider(p0, p1, 0.15f));
+    }
+
+    private static ClothParameters DefaultParams() => new()
+    {
+        VertexMass = 1.0f,
+        Damping = 0.05f,
+        AirDrag = 0.2f,
+        StretchStiffness = 0.9f,
+        BendStiffness = 0.1f,
+        GravityScale = 1.0f,
+        UseGravity = true,
+        Substeps = 1,
+        Iterations = 10
+    };
+}
+
