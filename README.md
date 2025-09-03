@@ -1,28 +1,27 @@
-Note
-- This repository’s code and documentation annotations are 100% produced with Codex (OpenAI) assistance and maintained under human review.
+# DotCloth
 
-DotCloth
-========
+## Note
+- This repository’s code and documentation annotations are 100% produced with Codex (OpenAI) assistance and maintained under human review.
 
 High‑performance, UnityCloth‑compatible eXtended PBD (XPBD) cloth simulation library targeting .NET 9.0. DotCloth aims to mirror UnityCloth’s parameter model while adopting recent PBD/XPBD research for performance, robustness, and ease of integration.
 
-Screenshot
-![MonoGame sample screenshot](docs/images/sample-monogame.png)
-![Godot sample screenshot](docs/images/sample-godot.png)
+## Screenshot
+- ![MonoGame sample screenshot](docs/images/sample-monogame.png)
+- ![Godot sample screenshot](docs/images/sample-godot.png)
 
-Goals
+## Goals
 - UnityCloth‑compatible parameter structure and behavior alignment where practical.
 - Cross‑platform .NET 9.0 library with strong static safety (nullable enabled, warnings as errors).
 - Thread‑safe design suitable for integration into host apps/engines.
 - Robust unit tests and CI for format/lint/typecheck/test.
 - Documentation‑first: design and API docs under `docs/`.
 
-Getting Started
+## Getting Started
 - Build: `dotnet build`
 - Test: `dotnet test` (xUnit)
 
-Quick Example
-```
+## Quick Example
+```csharp
 var positions = new[] { new Vector3(0,0,0), new Vector3(1,0,0), new Vector3(0,-1,0), new Vector3(1,-1,0) };
 var triangles = new[] { 0,1,2, 2,1,3 };
 var velocities = new Vector3[positions.Length];
@@ -34,35 +33,35 @@ solver.SetColliders(new [] { new PlaneCollider(new Vector3(0,1,0), 0f) });
 solver.Step(0.016f, positions, velocities);
 ```
 
-Repository Structure
+## Repository Structure
 - `docs/` — Design notes, algorithms, API, glossary.
 - `src/` — Library code (`DotCloth`).
 - `tests/` — Unit tests (`DotCloth.Tests`).
 - `AGENTS.md` — Project agent rules (extends team defaults).
 
-Documentation
+## Documentation
 - Auto-generated docs (DocFX) + guides live under `docs/docfx`. CI builds and can publish to GitHub Pages.
 - Legal notes are available under `docs/legal/LEGAL_NOTES.md`.
 
-Contributing
+## Contributing
 - Follow the rules in `AGENTS.md`.
 - Keep changes cohesive, documented, and covered by tests.
 
-Godot Sample
+## Godot Sample
 - Requirements: Godot 4.2+ with .NET (4.3 recommended) and .NET SDK 8.0.
 - Open `examples/DotCloth.GodotSample` in the Godot editor and press Play.
 - The library multi‑targets `net9.0;net8.0` so Godot can consume `net8.0`.
 - The sample is included in the solution but disabled from default builds to keep CI green.
 
-License
+## License
 - Apache License 2.0. See `LICENSE` and `NOTICE`.
 
-Legal
+## Legal
 - Terminology such as “Position‑Based Dynamics (PBD)” and “Extended Position‑Based Dynamics (XPBD)” is used descriptively with references to public literature only; no third‑party code is included.
 - “Unity” and “UnityCloth” are associated with products of Unity Technologies. Any mention herein is purely descriptive (e.g., conceptual alignment) and does not imply affiliation, sponsorship, or endorsement.
 - See `docs/legal/LEGAL_NOTES.md` for details and risk considerations.
 
-Performance
+## Performance
 - The `perf/DotCloth.Perf` project provides a lightweight CPU benchmark (single‑threaded) that steps representative cloth grids and multi‑instance sets.
 - Run on .NET 8 and 9 to compare:
   - `.NET 9`: `dotnet run --project perf/DotCloth.Perf -c Release --framework net9.0`

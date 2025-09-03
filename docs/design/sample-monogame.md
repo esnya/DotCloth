@@ -2,7 +2,7 @@ MonoGame Sample — Mini Design
 =============================
 
 Purpose
-- Replace Silk.NET sample with a MonoGame-based interactive sample that visualizes DotCloth in 3D and serves as a reference integration.
+- Provide a MonoGame-based interactive sample that visualizes DotCloth in 3D and serves as a reference integration.
 
 Scope and Boundaries
 - In: minimal DesktopGL game loop, basic camera (orbit), floor grid, simple cloth mesh generator, stepping DotCloth each Update, line rendering of edges.
@@ -23,7 +23,6 @@ Dependencies
 Test Strategy
 - CI builds sample (no GUI run). Core correctness remains covered by existing tests. Sample code avoids flaky timing.
 
-Migration / Compatibility
-- Silk.NET sample removed. New entry point: `examples/DotCloth.MonoGameSample`.
+Entry Point / Compatibility
+- Sample entry point: `examples/DotCloth.MonoGameSample`.
 - Library multi-targets `net9.0;net8.0` to simplify consumption from apps targeting .NET 8.
-
