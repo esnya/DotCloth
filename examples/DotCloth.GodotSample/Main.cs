@@ -48,6 +48,9 @@ public partial class Main : Node3D
 	private bool _updatingUI = false;
 	private HashSet<int> _pinned = new();
 
+	[Export]
+	public float PickRadius { get; set; } = 0.08f;
+
 	private enum Scenario { Minimal, Tube, Collision, Large }
 	private Scenario _scenario = Scenario.Minimal;
 	// Collision scenario baseline (center under pinned edge)
@@ -401,7 +404,7 @@ public partial class Main : Node3D
 				var def = GetScenarioDefaults(s);
 				_parms.Iterations = def.iter; _parms.StretchStiffness = def.stretch; _parms.BendStiffness = def.bend;
 				_solver.Initialize(_positions, _triangles, _parms);
-				_solver.PinVertices(Enumerable.Range(0, 32).ToArray());
+				PinVertices(Enumerable.Range(0, 32));
 				_solver.SetColliders(new DotCloth.Simulation.Collision.ICollider[]{ new DotCloth.Simulation.Collision.PlaneCollider(new Vec3(0,1,0), -0.8f) });
 				break;
 			}
@@ -413,7 +416,7 @@ public partial class Main : Node3D
 				var def = GetScenarioDefaults(s);
 				_parms.Iterations = def.iter; _parms.StretchStiffness = def.stretch; _parms.BendStiffness = def.bend;
 				_solver.Initialize(_positions, _triangles, _parms);
-				_solver.PinVertices(Enumerable.Range(0, 24).ToArray());
+				PinVertices(Enumerable.Range(0, 24));
 				_solver.SetColliders(new DotCloth.Simulation.Collision.ICollider[]{ new DotCloth.Simulation.Collision.PlaneCollider(new Vec3(0,1,0), -0.8f) });
 				break;
 			}
@@ -426,7 +429,7 @@ public partial class Main : Node3D
 				var def = GetScenarioDefaults(s);
 				_parms.Iterations = def.iter; _parms.StretchStiffness = def.stretch; _parms.BendStiffness = def.bend;
 				_solver.Initialize(_positions, _triangles, _parms);
-				_solver.PinVertices(Enumerable.Range(0, 32).ToArray());
+				PinVertices(Enumerable.Range(0, 32));
 				// Baseline collider center under pinned edge (row 0)
 				Vec3 sum = new();
 				for (int i = 0; i < n; i++) sum += _positions[i];
@@ -496,7 +499,7 @@ public partial class Main : Node3D
 				var def = GetScenarioDefaults(s);
 				_parms.Iterations = def.iter; _parms.StretchStiffness = def.stretch; _parms.BendStiffness = def.bend;
 				_solver.Initialize(_positions, _triangles, _parms);
-				_solver.PinVertices(pins.ToArray());
+				PinVertices(pins);
 				// Add ground plane and per-instance spheres
 				colliders.Insert(0, new DotCloth.Simulation.Collision.PlaneCollider(new Vec3(0,1,0), -0.8f));
 				_solver.SetColliders(colliders.ToArray());
@@ -677,8 +680,7 @@ public partial class Main : Node3D
 		{
 			if (k.Keycode == Key.R)
 			{
-				_solver.ClearPins();
-				_pinned.Clear();
+				ClearAllPins();
 			}
 			if (k.Keycode == Key.Key1) SetupScenario(Scenario.Minimal);
 			if (k.Keycode == Key.Key2) SetupScenario(Scenario.Tube);
@@ -704,10 +706,9 @@ public partial class Main : Node3D
 					var d = DistancePointToRay(wp, rayFrom, rayDir);
 					if (d < bestD) { bestD = d; bestIdx = i; }
 				}
-				const float pickRadius = 0.08f;
-				if (bestIdx >= 0 && bestD <= pickRadius)
+				if (bestIdx >= 0 && bestD <= PickRadius)
 				{
-					if (_pinned.Add(bestIdx)) _solver.PinVertices(bestIdx);
+					PinVertex(bestIdx);
 				}
 			}
 			if (mb.Pressed && (mb.ButtonIndex == MouseButton.Middle))
@@ -722,7 +723,7 @@ public partial class Main : Node3D
 					var d = DistancePointToRay(new Vector3(p.X,p.Y,p.Z), rayFrom, rayDir);
 					if (d < bestD) { bestD = d; bestIdx = i; }
 				}
-				if (bestIdx >= 0) { _pinned.Remove(bestIdx); _solver.UnpinVertices(bestIdx); }
+				if (bestIdx >= 0) { UnpinVertex(bestIdx); }
 			}
 		}
 		if (@event is InputEventMouseMotion mm && _orbiting)
@@ -740,6 +741,47 @@ public partial class Main : Node3D
 		var v = p - ro; var c = v.Dot(rd);
 		var proj = ro + rd * c;
 		return p.DistanceTo(proj);
+	}
+
+	// Pin/unpin helpers to keep local state and solver synchronized
+	private void PinVertex(int index)
+	{
+		if (index < 0 || index >= _positions.Length) return;
+		if (_pinned.Add(index)) _solver.PinVertices(index);
+	}
+
+	private void UnpinVertex(int index)
+	{
+		if (index < 0 || index >= _positions.Length) return;
+		if (_pinned.Remove(index)) _solver.UnpinVertices(index);
+	}
+
+	private void PinVertices(System.Collections.Generic.IEnumerable<int> indices)
+	{
+		var buf = new System.Collections.Generic.List<int>();
+		foreach (var i in indices)
+		{
+			if (i < 0 || i >= _positions.Length) continue;
+			if (_pinned.Add(i)) buf.Add(i);
+		}
+		if (buf.Count > 0) _solver.PinVertices(buf.ToArray());
+	}
+
+	private void UnpinVertices(System.Collections.Generic.IEnumerable<int> indices)
+	{
+		var buf = new System.Collections.Generic.List<int>();
+		foreach (var i in indices)
+		{
+			if (i < 0 || i >= _positions.Length) continue;
+			if (_pinned.Remove(i)) buf.Add(i);
+		}
+		if (buf.Count > 0) _solver.UnpinVertices(buf.ToArray());
+	}
+
+	private void ClearAllPins()
+	{
+		_solver.ClearPins();
+		_pinned.Clear();
 	}
 	private void AutoFrame()
 	{
