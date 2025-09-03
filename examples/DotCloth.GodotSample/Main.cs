@@ -123,7 +123,7 @@ public partial class Main : Node3D
         panel.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
         var vb = new VBoxContainer();
         vb.AddChild(new Label { Text = "DotCloth — Godot Sample" });
-        vb.AddChild(new Label { Text = "Left-click: Pin | Right-click: Unpin | R: Reset Pins" });
+        vb.AddChild(new Label { Text = "LMB: Pin | MMB: Unpin | RMB: Orbit | Wheel: Zoom | R: Reset Pins" });
 
         // Scenario selector
         var hbScenario = new HBoxContainer();
