@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFrameworks Condition=" '$(TargetFramework)' == '' and '$(TargetFrameworks)' == '' ">net9.0;net8.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
@@ -8,4 +8,3 @@
     <AnalysisLevel>latest</AnalysisLevel>
   </PropertyGroup>
 </Project>
-
