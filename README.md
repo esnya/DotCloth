@@ -35,10 +35,15 @@ Repository Structure
 
 Documentation
 - Auto-generated docs (DocFX) + guides live under `docs/docfx`. CI builds and can publish to GitHub Pages.
+- Legal notes are available under `docs/legal/LEGAL_NOTES.md`.
 
 Contributing
 - Follow the rules in `AGENTS.md`.
 - Keep changes cohesive, documented, and covered by tests.
 
 License
-- TBD by repository owner.
+- Apache License 2.0. See `LICENSE` and `NOTICE`.
+
+Legal
+- Terminology such as “Position‑Based Dynamics (PBD)” and “Extended Position‑Based Dynamics (XPBD)” is used descriptively with references to public literature only; no third‑party code is included.
+- See `docs/legal/LEGAL_NOTES.md` for details and risk considerations.
