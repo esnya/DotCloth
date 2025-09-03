@@ -31,21 +31,33 @@ Pre‑release Checklist (0.1.0 example)
    - `examples/README.md`: controls, scenarios, HUD (already present).
    - Design note: `docs/design/sample-monogame.md` (keep in sync).
 
-Tagging and Publishing
-1) Create an annotated tag from `main`:
-   - `git tag -a v0.1.0 -m "DotCloth 0.1.0"`
-   - `git push origin main --tags`
-2) CI (release) workflow on `v*` tags will:
-   - Restore, build, test.
-   - Pack library to `artifacts/` with version from tag.
-   - Push `.nupkg` to NuGet using `NUGET_API_KEY`.
-3) Create a GitHub Release from tag `v0.1.0`:
+Tagging and Publishing (two options)
+
+Option A — Manual GitHub Action (recommended)
+1) Trigger `Release (manual)` workflow from the Actions tab.
+   - Input `version` (e.g., `0.1.0`).
+   - The workflow will:
+     - Update central version in `Directory.Build.props`.
+     - Commit the bump, create tag `v<version>`, and push to `main` with tags.
+     - Restore, build, test.
+     - Pack and publish to NuGet (if `NUGET_API_KEY` is configured).
+2) Create a GitHub Release from tag `v0.1.0`:
    - Title: `DotCloth 0.1.0`
    - Notes (template):
      - Features: MonoGame sample with Minimal/Cylinder/Colliders/Large/X‑Large; collider visualization; perf HUD.
      - Fixes: fixed‑step accumulator; Vector3 disambiguation; 32‑bit index buffers; bounds validation.
      - CI: build + test; sample build headless.
      - Docs: examples README; design note.
+
+Option B — Tag‑driven release (alternative)
+1) Create an annotated tag from `main`:
+   - `git tag -a v0.1.0 -m "DotCloth 0.1.0"`
+   - `git push origin main --tags`
+2) CI (`Release`) workflow on `v*` tags will:
+   - Restore, build, test.
+   - Pack library to `artifacts/` with version from tag.
+   - Push `.nupkg` to NuGet using `NUGET_API_KEY`.
+3) Create a GitHub Release from tag `v0.1.0` using the same notes template.
 
 Local Validation (optional)
 - Pack: `dotnet pack src/DotCloth -c Release -o artifacts /p:Version=0.1.0`
@@ -61,4 +73,3 @@ Breaking Changes (future)
 - For `0.x`, avoid breaking changes where possible; if necessary:
   - Mark PR with `Migration` section (purpose → impact → rollback).
   - Document mapping and mitigations in README/ADR.
-
