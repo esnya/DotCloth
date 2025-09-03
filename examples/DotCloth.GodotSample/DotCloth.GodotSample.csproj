@@ -5,7 +5,13 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <!-- Fix CS8785 from Godot source generator: ensure GodotProjectDir is set -->
+    <GodotProjectDir>$(MSBuildProjectDirectory)</GodotProjectDir>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Ensure Roslyn source generators receive this MSBuild property -->
+    <CompilerVisibleProperty Include="GodotProjectDir" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/DotCloth/DotCloth.csproj" />
   </ItemGroup>
