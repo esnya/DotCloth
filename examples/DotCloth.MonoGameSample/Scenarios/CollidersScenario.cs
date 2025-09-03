@@ -16,12 +16,15 @@ internal sealed class CollidersScenario : IScenario
     public void Initialize()
     {
         _cloths.Clear();
-        Geometry.MakeGrid(24, 24, 0.12f, out var pos, out var tri);
+        int n = 24;
+        Geometry.MakeGrid(n, n, 0.12f, out var pos, out var tri);
+        // Lower the cloth so it can contact colliders
+        for (int i = 0; i < pos.Length; i++) pos[i].Y -= 1.0f; // from 1.5 -> 0.5
         var vel = new Vector3[pos.Length];
         var sim = new PbdSolver();
         sim.Initialize(pos, tri, DefaultParams());
-        // Pin two corners
-        sim.PinVertices(0, 23, 24*24-24, 24*24-1);
+        // Pin two top corners only
+        sim.PinVertices((n-1)*n + 0, (n-1)*n + (n-1));
         _cloths.Add(new ClothSim(sim, pos, vel, tri));
         _time = 0f;
     }

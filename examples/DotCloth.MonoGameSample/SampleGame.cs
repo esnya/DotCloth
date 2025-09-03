@@ -177,7 +177,15 @@ public sealed class SampleGame : Game
         foreach (var c in _cloths)
         {
             Geometry.BuildUniqueEdges(c.Tri, out var edges);
-            _edgesPerCloth.Add(edges);
+            // Validate edges against current position array bounds
+            var list = new List<(int i,int j)>(edges.Length);
+            int max = c.Pos.Length;
+            for (int ei = 0; ei < edges.Length; ei++)
+            {
+                var e = edges[ei];
+                if ((uint)e.i < (uint)max && (uint)e.j < (uint)max) list.Add(e);
+            }
+            _edgesPerCloth.Add(list.ToArray());
         }
         // allocate initial buffers
         var totalVerts = TotalEdgeVertexCount();
