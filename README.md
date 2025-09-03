@@ -7,7 +7,8 @@ DotCloth
 High‑performance, UnityCloth‑compatible eXtended PBD (XPBD) cloth simulation library targeting .NET 9.0. DotCloth aims to mirror UnityCloth’s parameter model while adopting recent PBD/XPBD research for performance, robustness, and ease of integration.
 
 Screenshot
-- ![MonoGame sample screenshot](docs/images/sample-monogame.png)
+![MonoGame sample screenshot](docs/images/sample-monogame.png)
+![Godot sample screenshot](docs/images/sample-godot.png)
 
 Goals
 - UnityCloth‑compatible parameter structure and behavior alignment where practical.
@@ -52,8 +53,6 @@ Godot Sample
 - Open `examples/DotCloth.GodotSample` in the Godot editor and press Play.
 - The library multi‑targets `net9.0;net8.0` so Godot can consume `net8.0`.
 - The sample is included in the solution but disabled from default builds to keep CI green.
-
-![Godot sample](docs/samples/images/godot-sample.svg)
 
 License
 - Apache License 2.0. See `LICENSE` and `NOTICE`.
