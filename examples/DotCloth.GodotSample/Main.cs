@@ -27,18 +27,25 @@ public partial class Main : Node3D
     // Rendering
     private ArrayMesh _mesh = default!;
     private MeshInstance3D _meshInst = default!;
+    private MeshInstance3D _ground = default!;
+    private WorldEnvironment _worldEnv = default!;
 
     // Camera/light
     private Camera3D _cam = default!;
     private DirectionalLight3D _sun = default!;
+    private float _yaw = 0.4f, _pitch = 0.35f, _dist = 3.0f;
+    private bool _orbiting = false; private Vector2 _lastMouse;
     private CanvasLayer _ui = default!;
     private HashSet<int> _pinned = new();
+
+    private enum Scenario { Minimal, Tube, Collision, Tuning, Large }
+    private Scenario _scenario = Scenario.Minimal;
 
     public override void _Ready()
     {
         Name = "DotCloth.GodotSample";
         SetupScene();
-        SetupSimulation();
+        SetupScenario(_scenario);
         BuildMesh();
         BuildUI();
     }
@@ -53,23 +60,30 @@ public partial class Main : Node3D
 
     private void SetupScene()
     {
-        // Camera
-        _cam = new Camera3D
-        {
-            Position = new Vector3(0, 1.2f, 3.2f),
-            RotationDegrees = new Vector3(-10, 0, 0),
-            Current = true,
-        };
+        // Camera (orbit)
+        _cam = new Camera3D { Current = true };
         AddChild(_cam);
+        UpdateCamera();
 
         // Light
         _sun = new DirectionalLight3D
         {
-            LightColor = new Color(0.95f, 0.98f, 1f),
-            LightEnergy = 1.1f,
+            LightColor = new Color(1.0f, 0.98f, 0.95f),
+            LightEnergy = 2.0f,
         };
-        _sun.RotationDegrees = new Vector3(-45, 30, 0);
+        _sun.RotationDegrees = new Vector3(-35, -35, 0);
         AddChild(_sun);
+
+        // Ambient/environment
+        _worldEnv = new WorldEnvironment();
+        _worldEnv.Environment = new Godot.Environment
+        {
+            BackgroundMode = Godot.Environment.BGMode.Color,
+            BackgroundColor = new Color(0.07f, 0.08f, 0.1f),
+            AmbientLightSource = Godot.Environment.AmbientSource.Sky,
+            AmbientLightEnergy = 0.45f,
+        };
+        AddChild(_worldEnv);
 
         // Mesh holder
         _mesh = new ArrayMesh();
@@ -83,6 +97,20 @@ public partial class Main : Node3D
             CullMode = BaseMaterial3D.CullModeEnum.Back,
         };
         AddChild(_meshInst);
+
+        // Ground
+        _ground = new MeshInstance3D
+        {
+            Mesh = new PlaneMesh { Size = new Vector2(8, 8), SubdivideWidth = 1, SubdivideDepth = 1 },
+            Position = new Vector3(0, -0.8f, 0),
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(0.16f, 0.18f, 0.22f),
+                Roughness = 0.9f,
+                Metallic = 0.0f,
+            }
+        };
+        AddChild(_ground);
     }
 
     private void BuildUI()
@@ -96,6 +124,20 @@ public partial class Main : Node3D
         var vb = new VBoxContainer();
         vb.AddChild(new Label { Text = "DotCloth — Godot Sample" });
         vb.AddChild(new Label { Text = "Left-click: Pin | Right-click: Unpin | R: Reset Pins" });
+
+        // Scenario selector
+        var hbScenario = new HBoxContainer();
+        hbScenario.AddChild(new Label { Text = "Scenario" });
+        var scenarios = new OptionButton();
+        scenarios.AddItem("Minimal", 0);
+        scenarios.AddItem("Tube", 1);
+        scenarios.AddItem("Collision", 2);
+        scenarios.AddItem("Tuning", 3);
+        scenarios.AddItem("Large", 4);
+        scenarios.Selected = (int)_scenario;
+        scenarios.ItemSelected += (long idx) => { SetupScenario((Scenario)idx); };
+        hbScenario.AddChild(scenarios);
+        vb.AddChild(hbScenario);
 
         // Iterations
         var hbIter = new HBoxContainer();
@@ -124,22 +166,108 @@ public partial class Main : Node3D
         panel.AddChild(vb);
         _ui.AddChild(panel);
         panel.Position = new Vector2(10, 10);
-        panel.Size = new Vector2(320, 120);
+        panel.Size = new Vector2(360, 180);
     }
 
-    private void SetupSimulation()
+    private void SetupScenario(Scenario s)
     {
-        // Cloth grid centered at origin
-        (var pos, var tri) = MakeGrid(n: 32, spacing: 0.05f);
-        _positions = pos;
-        _velocities = new Vec3[_positions.Length];
-        _triangles = tri;
-
-        _solver = new PbdSolver();
-        _solver.Initialize(_positions, _triangles, _parms);
-        // Pin top edge (first row of the grid)
-        _solver.PinVertices(Enumerable.Range(0, 32).ToArray());
-        _solver.SetColliders(System.Array.Empty<DotCloth.Simulation.Collision.ICollider>());
+        _scenario = s;
+        _pinned.Clear();
+        switch (s)
+        {
+            case Scenario.Minimal:
+            {
+                (var pos, var tri) = MakeGrid(n: 32, spacing: 0.05f);
+                _positions = pos;
+                _velocities = new Vec3[_positions.Length];
+                _triangles = tri;
+                _solver = new PbdSolver();
+                _parms.Iterations = 10;
+                _solver.Initialize(_positions, _triangles, _parms);
+                _solver.PinVertices(Enumerable.Range(0, 32).ToArray());
+                _solver.SetColliders(new DotCloth.Simulation.Collision.ICollider[]{ new DotCloth.Simulation.Collision.PlaneCollider(new Vec3(0,1,0), -0.8f) });
+                break;
+            }
+            case Scenario.Tube:
+            {
+                (var pos, var tri) = MakeCylinder(radial: 24, height: 24, radius: 0.6f, spacing: 0.05f);
+                _positions = pos; _velocities = new Vec3[_positions.Length]; _triangles = tri;
+                _solver = new PbdSolver();
+                _parms.Iterations = 10;
+                _solver.Initialize(_positions, _triangles, _parms);
+                _solver.PinVertices(Enumerable.Range(0, 24).ToArray());
+                _solver.SetColliders(new DotCloth.Simulation.Collision.ICollider[]{ new DotCloth.Simulation.Collision.PlaneCollider(new Vec3(0,1,0), -0.8f) });
+                break;
+            }
+            case Scenario.Collision:
+            {
+                (var pos, var tri) = MakeGrid(n: 32, spacing: 0.05f);
+                _positions = pos; _velocities = new Vec3[_positions.Length]; _triangles = tri;
+                _solver = new PbdSolver();
+                _parms.Iterations = 10;
+                _solver.Initialize(_positions, _triangles, _parms);
+                _solver.PinVertices(Enumerable.Range(0, 32).ToArray());
+                var colliders = new DotCloth.Simulation.Collision.ICollider[]
+                {
+                    new DotCloth.Simulation.Collision.PlaneCollider(new Vec3(0,1,0), -0.8f),
+                    new DotCloth.Simulation.Collision.SphereCollider(new Vec3(0,-0.3f,0), 0.4f),
+                };
+                _solver.SetColliders(colliders);
+                break;
+            }
+            case Scenario.Large:
+            {
+                int n = 24; float spacing = 0.05f; int instX = 4, instY = 3; int instCount = instX * instY;
+                var (basePos, baseTri) = MakeGrid(n, spacing);
+                _positions = new Vec3[basePos.Length * instCount];
+                _triangles = new int[baseTri.Length * instCount];
+                _velocities = new Vec3[_positions.Length];
+                int vertsPer = basePos.Length; int trisPer = baseTri.Length;
+                float instGap = n * spacing * 1.3f;
+                var pins = new System.Collections.Generic.List<int>(n * instCount);
+                for (int iy = 0; iy < instY; iy++)
+                for (int ix = 0; ix < instX; ix++)
+                {
+                    int inst = iy * instX + ix;
+                    float ox = (ix - (instX - 1) * 0.5f) * instGap;
+                    float oz = -((iy - (instY - 1) * 0.5f) * instGap);
+                    for (int i = 0; i < vertsPer; i++)
+                    {
+                        var p = basePos[i];
+                        _positions[inst * vertsPer + i] = new Vec3(p.X + ox, p.Y, p.Z + oz);
+                    }
+                    for (int i = 0; i < trisPer; i++)
+                        _triangles[inst * trisPer + i] = baseTri[i] + inst * vertsPer;
+                    for (int i = 0; i < n; i++) pins.Add(inst * vertsPer + i);
+                }
+                _solver = new PbdSolver();
+                _parms.Iterations = 10;
+                _solver.Initialize(_positions, _triangles, _parms);
+                _solver.PinVertices(pins.ToArray());
+                var colliders = new System.Collections.Generic.List<DotCloth.Simulation.Collision.ICollider> { new DotCloth.Simulation.Collision.PlaneCollider(new Vec3(0,1,0), -0.8f) };
+                for (int iy = 0; iy < instY; iy++)
+                for (int ix = 0; ix < instX; ix++)
+                {
+                    float ox = (ix - (instX - 1) * 0.5f) * instGap;
+                    float oz = -((iy - (instY - 1) * 0.5f) * instGap);
+                    colliders.Add(new DotCloth.Simulation.Collision.SphereCollider(new Vec3(ox, -0.3f, oz), 0.4f));
+                }
+                _solver.SetColliders(colliders.ToArray());
+                break;
+            }
+            case Scenario.Tuning:
+            {
+                (var pos, var tri) = MakeGrid(n: 32, spacing: 0.05f);
+                _positions = pos; _velocities = new Vec3[_positions.Length]; _triangles = tri;
+                _solver = new PbdSolver();
+                _parms.Iterations = 10;
+                _solver.Initialize(_positions, _triangles, _parms);
+                _solver.PinVertices(Enumerable.Range(0, 32).ToArray());
+                _solver.SetColliders(new DotCloth.Simulation.Collision.ICollider[]{ new DotCloth.Simulation.Collision.PlaneCollider(new Vec3(0,1,0), -0.8f) });
+                break;
+            }
+        }
+        BuildMesh();
     }
 
     private void BuildMesh()
@@ -201,6 +329,36 @@ public partial class Main : Node3D
         return (pos, tri);
     }
 
+    private static (Vec3[] pos, int[] tri) MakeCylinder(int radial, int height, float radius, float spacing)
+    {
+        var pos = new Vec3[radial * height];
+        for (int y = 0; y < height; y++)
+        {
+            float py = -y * spacing;
+            for (int r = 0; r < radial; r++)
+            {
+                float theta = (float)(2 * Math.PI * r / radial);
+                float x = radius * MathF.Cos(theta);
+                float z = radius * MathF.Sin(theta);
+                pos[y * radial + r] = new Vec3(x, py, z);
+            }
+        }
+        var tri = new int[(height - 1) * radial * 6];
+        int t = 0;
+        for (int y = 0; y < height - 1; y++)
+        for (int r = 0; r < radial; r++)
+        {
+            int r2 = (r + 1) % radial;
+            int i = y * radial + r;
+            int ir = y * radial + r2;
+            int id = (y + 1) * radial + r;
+            int idr = (y + 1) * radial + r2;
+            tri[t++] = i; tri[t++] = ir; tri[t++] = id;
+            tri[t++] = id; tri[t++] = ir; tri[t++] = idr;
+        }
+        return (pos, tri);
+    }
+
     private static Vec3[] ComputeNormals(ReadOnlySpan<Vec3> positions, ReadOnlySpan<int> triangles)
     {
         var normals = new Vec3[positions.Length];
@@ -232,36 +390,59 @@ public partial class Main : Node3D
                 _solver.ClearPins();
                 _pinned.Clear();
             }
+            if (k.Keycode == Key.Key1) SetupScenario(Scenario.Minimal);
+            if (k.Keycode == Key.Key2) SetupScenario(Scenario.Tube);
+            if (k.Keycode == Key.Key3) SetupScenario(Scenario.Collision);
+            if (k.Keycode == Key.Key4) SetupScenario(Scenario.Tuning);
+            if (k.Keycode == Key.Key5) SetupScenario(Scenario.Large);
         }
-        if (@event is InputEventMouseButton mb && mb.Pressed)
+        if (@event is InputEventMouseButton mb)
         {
-            var mp = mb.Position;
-            var rayFrom = _cam.ProjectRayOrigin(mp);
-            var rayDir = _cam.ProjectRayNormal(mp);
-            int bestIdx = -1; float bestD = float.PositiveInfinity;
-            // Ray-to-point distance test
-            for (int i = 0; i < _positions.Length; i++)
+            if (mb.Pressed && (mb.ButtonIndex == MouseButton.Right)) { _orbiting = true; _lastMouse = mb.Position; }
+            if (!mb.Pressed && (mb.ButtonIndex == MouseButton.Right)) { _orbiting = false; }
+            if (mb.Pressed && (mb.ButtonIndex == MouseButton.WheelUp)) { _dist = Math.Max(0.5f, _dist * 0.9f); UpdateCamera(); }
+            if (mb.Pressed && (mb.ButtonIndex == MouseButton.WheelDown)) { _dist = Math.Min(10f, _dist * 1.1f); UpdateCamera(); }
+            if (mb.Pressed && (mb.ButtonIndex == MouseButton.Left))
             {
-                var p = _positions[i];
-                var wp = new Vector3(p.X, p.Y, p.Z);
-                var d = DistancePointToRay(wp, rayFrom, rayDir);
-                if (d < bestD)
+                var mp = mb.Position;
+                var rayFrom = _cam.ProjectRayOrigin(mp);
+                var rayDir = _cam.ProjectRayNormal(mp);
+                int bestIdx = -1; float bestD = float.PositiveInfinity;
+                for (int i = 0; i < _positions.Length; i++)
                 {
-                    bestD = d; bestIdx = i;
+                    var p = _positions[i];
+                    var wp = new Vector3(p.X, p.Y, p.Z);
+                    var d = DistancePointToRay(wp, rayFrom, rayDir);
+                    if (d < bestD) { bestD = d; bestIdx = i; }
                 }
-            }
-            const float pickRadius = 0.08f; // world units
-            if (bestIdx >= 0 && bestD <= pickRadius)
-            {
-                if (mb.ButtonIndex == MouseButton.Left)
+                const float pickRadius = 0.08f;
+                if (bestIdx >= 0 && bestD <= pickRadius)
                 {
                     if (_pinned.Add(bestIdx)) _solver.PinVertices(bestIdx);
                 }
-                else if (mb.ButtonIndex == MouseButton.Right)
-                {
-                    if (_pinned.Remove(bestIdx)) _solver.UnpinVertices(bestIdx);
-                }
             }
+            if (mb.Pressed && (mb.ButtonIndex == MouseButton.Middle))
+            {
+                var mp = mb.Position;
+                var rayFrom = _cam.ProjectRayOrigin(mp);
+                var rayDir = _cam.ProjectRayNormal(mp);
+                int bestIdx = -1; float bestD = float.PositiveInfinity;
+                foreach (var i in _pinned)
+                {
+                    var p = _positions[i];
+                    var d = DistancePointToRay(new Vector3(p.X,p.Y,p.Z), rayFrom, rayDir);
+                    if (d < bestD) { bestD = d; bestIdx = i; }
+                }
+                if (bestIdx >= 0) { _pinned.Remove(bestIdx); _solver.UnpinVertices(bestIdx); }
+            }
+        }
+        if (@event is InputEventMouseMotion mm && _orbiting)
+        {
+            var delta = mm.Position - _lastMouse;
+            _lastMouse = mm.Position;
+            _yaw += delta.X * 0.005f;
+            _pitch = Math.Clamp(_pitch + delta.Y * 0.005f, -1.2f, 1.2f);
+            UpdateCamera();
         }
     }
 
@@ -270,5 +451,22 @@ public partial class Main : Node3D
         var v = p - ro; var c = v.Dot(rd);
         var proj = ro + rd * c;
         return p.DistanceTo(proj);
+    }
+    private void UpdateCamera()
+    {
+        var eye = Orbit(_yaw, _pitch, _dist);
+        _cam.Position = eye;
+        _cam.LookAt(Vector3.Zero, Vector3.Up);
+    }
+
+    private static Vector3 Orbit(float yaw, float pitch, float dist)
+    {
+        var ey = new Vec3(
+            MathF.Cos(pitch) * MathF.Cos(yaw),
+            MathF.Sin(-pitch),
+            MathF.Cos(pitch) * MathF.Sin(yaw)
+        );
+        var v3 = new Vector3(ey.X, ey.Y, ey.Z);
+        return v3 * dist;
     }
 }
