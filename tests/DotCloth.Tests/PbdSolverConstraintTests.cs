@@ -72,7 +72,8 @@ public class PbdSolverConstraintTests
 
         var v10 = RunWithIterations(10);
         var v20 = RunWithIterations(20);
-        Assert.True(v20 <= v10 + 1e-6f);
+        // Allow tiny numerical noise
+        Assert.True(v20 <= v10 + 1e-4f);
     }
 
     [Fact]

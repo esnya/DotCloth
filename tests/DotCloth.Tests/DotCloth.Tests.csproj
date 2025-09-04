@@ -2,6 +2,10 @@
   <PropertyGroup>
     <AssemblyName>DotCloth.Tests</AssemblyName>
     <RootNamespace>DotCloth.Tests</RootNamespace>
+    <!-- Tests run on latest framework only to ensure determinism and strict checks -->
+    <TargetFrameworks>net9.0</TargetFrameworks>
+    <!-- Allow CI/command line to toggle XPBD tests in sync with the library -->
+    <DefineConstants>$(DefineConstants);$(DotClothExtraDefines)</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="xunit" Version="2.9.0" />
@@ -13,4 +17,3 @@
     <ProjectReference Include="../../src/DotCloth/DotCloth.csproj" />
   </ItemGroup>
 </Project>
-
