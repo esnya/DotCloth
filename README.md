@@ -3,7 +3,7 @@
 ## Note
 - This repository’s code and documentation annotations are 100% produced with Codex (OpenAI) assistance and maintained under human review.
 
-High‑performance, UnityCloth‑compatible eXtended PBD (XPBD) cloth simulation library targeting .NET 9.0. DotCloth aims to mirror UnityCloth’s parameter model while adopting recent PBD/XPBD research for performance, robustness, and ease of integration.
+High‑performance, UnityCloth‑compatible cloth simulation library targeting .NET 9.0. DotCloth mirrors UnityCloth’s parameter model while using a velocity‑level sequential‑impulses solver by default. An experimental XPBD path can be built behind a compile flag for research.
 
 ## Screenshot
 - ![MonoGame sample screenshot](docs/images/sample-monogame.png)
@@ -42,6 +42,7 @@ solver.Step(0.016f, positions, velocities);
 ## Documentation
 - Auto-generated docs (DocFX) + guides live under `docs/docfx`. CI builds and can publish to GitHub Pages.
 - Legal notes are available under `docs/legal/LEGAL_NOTES.md`.
+ - Default solver is velocity‑level (no position projection / no XPBD lambda accumulation). To experiment with XPBD, build with `DOTCLOTH_EXPERIMENTAL_XPBD` and use `XpbdSolver` directly.
 
 ## Contributing
 - Follow the rules in `AGENTS.md`.
@@ -60,6 +61,7 @@ solver.Step(0.016f, positions, velocities);
 - Terminology such as “Position‑Based Dynamics (PBD)” and “Extended Position‑Based Dynamics (XPBD)” is used descriptively with references to public literature only; no third‑party code is included.
 - “Unity” and “UnityCloth” are associated with products of Unity Technologies. Any mention herein is purely descriptive (e.g., conceptual alignment) and does not imply affiliation, sponsorship, or endorsement.
 - See `docs/legal/LEGAL_NOTES.md` for details and risk considerations.
+- Default algorithm performance (patent‑risk‑avoidance path): see `docs/legal/LEGAL_NOTES.md#default-algorithm-performance-measured`.
 
 ## Performance
 - The `perf/DotCloth.Perf` project provides a lightweight CPU benchmark (single‑threaded) that steps representative cloth grids and multi‑instance sets.

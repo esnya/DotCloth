@@ -16,10 +16,14 @@ Core Interfaces
   - `void SetColliders(IEnumerable<Collision.ICollider> colliders)`
   - `void SetTetherAnchors(ReadOnlySpan<int> anchors)` — define anchors for tethers
 
+Solver Variants
+- Default: velocity‑level sequential impulses (no XPBD lambda/compliance accumulation).
+- Experimental: XPBD (position‑based) available when compiled with `DOTCLOTH_EXPERIMENTAL_XPBD` and used via `XpbdSolver` directly.
+
 Solver Settings
-- `ClothParameters.Iterations` — XPBD iterations per substep (default 8).
+- `ClothParameters.Iterations` — constraint iterations per substep (default 8).
 - `ClothParameters.Substeps` — substeps per `Step` (default 1).
-- `ClothParameters.ComplianceScale` — maps [0..1] stiffness → XPBD compliance alpha.
+- `ClothParameters.ComplianceScale` — used only by XPBD to derive compliance from stiffness.
 
 Tuning Notes
 - Iterations are the primary quality vs. cost knob. Start at 8–10 and adjust by observing stretch/bend violation reduction vs. time budget.
@@ -35,10 +39,10 @@ Collision Hooks
 - Receives previous positions to allow simple swept push-out and reduce tunneling.
 
 Constraints
-- Stretch: unique edges from triangles, XPBD with per-edge lambdas.
-- Bending: distance across opposite vertices of adjacent triangles (XPBD). Future: dihedral angle.
-- Tether-to-rest: pulls vertices toward rest position using XPBD; not identical to UnityCloth’s “tethers” but offers stabilizing behavior. Mapping notes pending.
-- Tether-to-anchor: nearest anchor per vertex with rest length = initial distance × `TetherLengthScale`.
+- Stretch: unique edges from triangles. Default solver applies sequential impulses; XPBD variant uses per‑edge lambdas (compliance).
+- Bending: distance across opposite vertices of adjacent triangles. Default solver uses impulses; XPBD variant uses compliance. Future: dihedral angle.
+- Tethers: rest/anchor targets to stabilize motion. Default solver uses impulses + small position post‑stabilization; XPBD variant uses compliance.
+- Tether‑to‑anchor: nearest anchor per vertex with rest length = initial distance × `TetherLengthScale`.
 
 Batching (internal)
 - Greedy batching groups constraints that do not share vertices; solver processes batches sequentially for determinism.
@@ -57,8 +61,8 @@ Determinism
 
 UnityCloth Mapping (WIP)
 - Damping ↔ `Damping`
-- Stretching Stiffness ↔ `StretchStiffness` (XPBD compliance derived internally)
-- Bending Stiffness ↔ `BendStiffness` (XPBD compliance derived internally)
+- Stretching Stiffness ↔ `StretchStiffness` (in XPBD maps to compliance)
+- Bending Stiffness ↔ `BendStiffness` (in XPBD maps to compliance)
 - Tether Stiffness ↔ `TetherStiffness`
 - Use Gravity ↔ `UseGravity`; Gravity Scale ↔ `GravityScale`
 - External/Random Accel ↔ `ExternalAcceleration`/`RandomAcceleration`
