@@ -169,6 +169,9 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                         // Relative velocity along constraint direction
                         var relativeVel = Vector3.Dot(vj - vi, n);
                         
+                        // Skip if stiffness is zero
+                        if (edge.Stiffness <= 0f) continue;
+                        
                         // For stretch constraints, we want relative velocity to reduce position error
                         // If edge is too long (C > 0), we want negative relative velocity (particles moving towards each other)
                         // If edge is too short (C < 0), we want positive relative velocity (particles moving apart)
@@ -215,6 +218,9 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                             
                             float C = len - bend.RestDistance;
                             var relativeVel = Vector3.Dot(vl - vk, n);
+                            
+                            // Skip if stiffness is zero
+                            if (bend.Stiffness <= 0f) continue;
                             
                             // For bend constraints, similar logic - target velocity to reduce position error
                             float targetVel = -bend.Stiffness * C;
