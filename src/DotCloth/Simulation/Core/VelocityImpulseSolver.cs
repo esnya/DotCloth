@@ -15,6 +15,33 @@ public sealed class VelocityImpulseSolver : IClothSimulator
     private Config _cfg;
     private int _vertexCount;
 
+    // Solver tuning constants (class-level for clarity and maintainability)
+    private const float Omega = 0.9f;                  // under-relaxation (0<ω<=1)
+    private const float CfmStretch = 1e-3f;
+    private const float CfmTether  = 1e-5f;
+    private const float CfmBend    = 3e-3f;            // bend softer than stretch
+    private const float LambdaClampStretch = 0.20f;
+    private const float LambdaClampTether  = 1.20f;
+    private const float OmegaTether = 1.0f;            // no under-relaxation for tether
+    private const float LambdaClampBend    = 0.10f;
+
+    // Compression handling scales
+    private const float CompressBetaScale = 0.90f;
+    private const float CfmCompressScale = 1.10f;
+    private const float LambdaClampCompress = 0.24f;
+
+    // Post-stabilization (position-level)
+    private const int PostStabIters = 3;
+    private const float PosAlphaStretch = 0.40f;
+    private const float PosAlphaBend = 0.15f;
+    private const float PosAlphaTether = 1.00f;
+
+    // Damping micro floor to ensure non-increase
+    private const float MicroDamp = 1e-7f;
+
+    // Global velocity cap (anti-divergence safety net)
+    private const float MaxVelocityMagnitude = 4.95f;
+
     // Mass/inertia
     private float[] _invMass = Array.Empty<float>();
 
@@ -123,18 +150,6 @@ public sealed class VelocityImpulseSolver : IClothSimulator
         bool hasTether = _cfg.TetherStiffness > 0f;
 
         // Stabilizers: small CFM (softness), under-relaxation, per-iteration impulse clamp
-        const float omega = 0.9f; // under-relaxation (0<ω<=1)
-        const float cfmStretch = 1e-3f;
-        const float cfmTether  = 1e-5f;
-        const float cfmBend    = 3e-3f; // bend softer than stretch
-        const float lambdaClampStretch = 0.20f;
-        const float lambdaClampTether  = 1.20f;
-        const float omegaTether = 1.0f; // no under-relaxation for tether
-        const float lambdaClampBend    = 0.10f;
-        // For compression handling (C<0): slightly stronger return, modest softness
-        const float compressBetaScale = 0.90f;
-        const float cfmCompressScale = 1.1f;
-        const float lambdaClampCompress = 0.24f;
 
         for (int s = 0; s < substeps; s++)
         {
@@ -196,10 +211,10 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                         float rel = Vector3.Dot(velocities[i], n); // anchor has zero velocity in constraint frame
                         float bterm = +betaTether * C / dt;
                         float w = wi;
-                        float denom = w + cfmTether;
+                        float denom = w + CfmTether;
                         float lambda = -(rel + bterm) / denom;
-                        lambda = MathF.Max(-lambdaClampTether, MathF.Min(lambdaClampTether, lambda));
-                        var dv = (lambda * omegaTether) * n;
+                        lambda = MathF.Max(-LambdaClampTether, MathF.Min(LambdaClampTether, lambda));
+                        var dv = (lambda * OmegaTether) * n;
                         // Apply impulse to move toward target (sign adjusted via bterm)
                         velocities[i] -= wi * dv;
                         // Shock-like clamp: ensure sufficient inward velocity toward target when violating
@@ -243,11 +258,11 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                             if (C > 0f)
                             {
                                 float bterm = -betaStretch * C / dt; // Baumgarte stabilization
-                                float denom = w + cfmStretch;
+                            float denom = w + CfmStretch;
                                 float lambda = -(rel + bterm) / denom;
                                 // impulse clamp (tension)
-                                lambda = MathF.Max(-lambdaClampStretch, MathF.Min(lambdaClampStretch, lambda));
-                                var dv = (lambda * omega) * n;
+                            lambda = MathF.Max(-LambdaClampStretch, MathF.Min(LambdaClampStretch, lambda));
+                                var dv = (lambda * Omega) * n;
                                 velocities[i] -= edge.Wi * dv;
                                 velocities[j] += edge.Wj * dv;
                             }
@@ -256,13 +271,13 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                                 // Allow anchor-pair edges to compress freely (tether should win)
                                 if (_tetherAnchorIndex[i] == j || _tetherAnchorIndex[j] == i)
                                     continue;
-                                float betaC = betaStretch * compressBetaScale;
+                                float betaC = betaStretch * CompressBetaScale;
                                 float bterm = -betaC * C / dt; // note: C<0 → bterm reduces compression slowly
-                                float denom = w + cfmStretch * cfmCompressScale;
+                                float denom = w + CfmStretch * CfmCompressScale;
                                 float lambda = -(rel + bterm) / denom;
                                 // tighter clamp for compression
-                                lambda = MathF.Max(-lambdaClampCompress, MathF.Min(lambdaClampCompress, lambda));
-                                var dv = (lambda * omega) * n;
+                                lambda = MathF.Max(-LambdaClampCompress, MathF.Min(LambdaClampCompress, lambda));
+                                var dv = (lambda * Omega) * n;
                                 velocities[i] -= edge.Wi * dv;
                                 velocities[j] += edge.Wj * dv;
                             }
@@ -295,10 +310,10 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                             if (w <= 0f) continue;
                             var rel = Vector3.Dot(velocities[l] - velocities[k], n);
                             float bterm = -betaBend * C / dt;
-                            float denom = w + cfmBend;
+                            float denom = w + CfmBend;
                             float lambda = -(rel + bterm) / denom;
-                            lambda = MathF.Max(-lambdaClampBend, MathF.Min(lambdaClampBend, lambda));
-                            var dv = (lambda * omega) * n;
+                            lambda = MathF.Max(-LambdaClampBend, MathF.Min(LambdaClampBend, lambda));
+                            var dv = (lambda * Omega) * n;
                             velocities[k] -= bend.Wk * dv;
                             velocities[l] += bend.Wl * dv;
                         }
@@ -316,8 +331,7 @@ public sealed class VelocityImpulseSolver : IClothSimulator
             }
 
             // 4) Integrate positions and apply global damping (with tiny floor to ensure monotone non-increase)
-            const float microDamp = 1e-7f;
-            float dampFactor = MathF.Max(0f, MathF.Min(1f, (1.0f - damping) - microDamp));
+            float dampFactor = MathF.Max(0f, MathF.Min(1f, (1.0f - damping) - MicroDamp));
             for (int i = 0; i < _vertexCount; i++)
             {
                 if (_invMass[i] == 0f)
@@ -330,10 +344,7 @@ public sealed class VelocityImpulseSolver : IClothSimulator
             }
 
             // 5) Post-stabilization (position-level) — small corrective projections
-            const int postStabIters = 3;
-            const float posAlphaStretch = 0.40f;
-            const float posAlphaBend = 0.15f;
-            const float posAlphaTether = 1.00f;
+            const int postStabIters = PostStabIters;
             // (Removed) Experimental area stabilization constants.
             for (int ps = 0; ps < postStabIters; ps++)
             {
@@ -356,7 +367,7 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                         if (wsum <= 0f) continue;
                         if (C > 0f)
                         {
-                            float corrMag = posAlphaStretch * C / MathF.Max(1e-8f, wsum);
+                            float corrMag = PosAlphaStretch * C / MathF.Max(1e-8f, wsum);
                             var corr = corrMag * n;
                             positions[i] += edge.Wi * corr;
                             positions[j] -= edge.Wj * corr;
@@ -393,7 +404,7 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                         var n = d * invLen;
                         float wsum = bend.WSum;
                         if (wsum <= 0f) continue;
-                        float corrMag = posAlphaBend * C / MathF.Max(1e-8f, wsum);
+                        float corrMag = PosAlphaBend * C / MathF.Max(1e-8f, wsum);
                         var corr = corrMag * n;
                         positions[k] += bend.Wk * corr;
                         positions[l] -= bend.Wl * corr;
@@ -419,7 +430,7 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                         float C = len - targetLen;
                         if (C <= 0f) continue;
                         var n = d * invLen;
-                        var corr = posAlphaTether * C * n; // single-body
+                        var corr = PosAlphaTether * C * n; // single-body
                         positions[i] -= corr;
                     }
                 }
@@ -531,15 +542,14 @@ public sealed class VelocityImpulseSolver : IClothSimulator
             // Global velocity cap (anti-divergence safety net) — apply last
             if (hasStretch || hasBend || hasTether)
             {
-                const float vCap = 4.95f;
-                float vCap2 = vCap * vCap;
+                float vCap2 = MaxVelocityMagnitude * MaxVelocityMagnitude;
                 for (int i = 0; i < _vertexCount; i++)
                 {
                     var v = velocities[i];
                     float s2 = v.LengthSquared();
                     if (s2 > vCap2)
                     {
-                        float inv = vCap / MathF.Sqrt(s2);
+                        float inv = MaxVelocityMagnitude / MathF.Sqrt(s2);
                         velocities[i] = v * inv;
                     }
                 }

@@ -7,6 +7,9 @@ namespace DotCloth.Tests;
 
 public class OverContractionTests
 {
+    // Threshold for minimal acceptable edge length ratio in Minimal (bend=0) runs.
+    // Temporary relaxation for stability; plan to restore toward 0.80 after bend>0 fixes.
+    private const float MinEdgeRatioThreshold = 0.62f;
     private static IEnumerable<(int i, int j)> UniqueEdges(ReadOnlySpan<int> tris)
     {
         var set = new HashSet<(int,int)>();
@@ -174,12 +177,10 @@ public class OverContractionTests
         avgRatio /= MathF.Max(1, edges.Length);
 
         // Detect excessive contraction robustly: edge ratio must exceed threshold (strict by default)
-        // TEMP: Relaxed threshold for current solver tuning (bend=0).
-        // Rationale: With bend disabled and current stretch/compress settings,
-        // the minimum observed edge ratio in stable runs is around 0.62–0.63.
-        // This relaxation reduces CI flakiness while keeping over‑contraction in check.
-        // Future: After fixing bend>0 issues and retuning, restore to 0.80 progressively.
-        const float minEdgeRatio = 0.62f; // temporarily allow down to ~62%
+        // TEMP: With bend disabled and current stretch/compress settings, the
+        // minimum observed edge ratio in stable runs is ~0.62–0.63. Relax to reduce
+        // CI flakiness while keeping over‑contraction in check. Plan to restore → 0.80.
+        const float minEdgeRatio = MinEdgeRatioThreshold; // temporarily allow down to ~62%
         Console.WriteLine($"Edge ratios: min={minRatio:F3}, avg={avgRatio:F3} (minLimit={minEdgeRatio:F2})");
         Assert.True(minRatio >= minEdgeRatio, $"Edge over-contraction: min ratio {minRatio:F3} < {minEdgeRatio:F2} (avg={avgRatio:F3})");
     }
@@ -227,8 +228,8 @@ public class OverContractionTests
         Assert.True(minDrop < minSag, $"Free edge did not sag enough: minDrop={minDrop:F3} (minY={minY:F3}, initial={y0Initial:F3})");
         // Allow deeper sag in Minimal without plane; limit check removed to avoid false failures when no ground.
 
-        // Curling heuristic: free-edge端の高さが平均より著しく高くならない（上方に巻き上がらない）
-        // Curling heuristic intentionally not enforced strictly for Minimal without plane.
+        // Curling heuristic: free-edge ends should not rise significantly above the average height (no upward curling).
+        // Not enforced strictly for Minimal scenario without a floor.
     }
 
     [Fact]
@@ -345,7 +346,7 @@ public class OverContractionTests
         for (int i = 0; i < 300; i++) sim.Step(dt, pos, vel); // ~10s
         float max10 = MaxDihedralAngle(tris, pos);
 
-        // Runaway curling heuristic: 最大折れ角は5s以降でほぼ増えない（strict by default）
+        // Runaway curling heuristic: maximum fold angle should not increase significantly after 5 seconds (strict by default).
         const float maxDelta = MathF.PI / 180f; // +1° within 5s→10s
         Console.WriteLine($"Dihedral: max5={max5:F3}, max10={max10:F3}, delta={max10 - max5:F3} (limit={maxDelta:F3})");
         Assert.True(max10 <= max5 + maxDelta, $"Max dihedral increased too much: 5s={max5:F3}, 10s={max10:F3}");
@@ -397,6 +398,7 @@ public class OverContractionTests
         Assert.True(endAboveAvg < endAboveLimitBpos, $"Bend>0 ends curl up excessively: endAboveAvg={endAboveAvg:F3}");
     }
 
-    // Note: Bend依存性については、床あり条件での"巻き上がり"の過剰化を直接検出する個別テストで監視し、
-    // 高さの完全な収束（bend非依存）までは現在のモデルでは保証しない。
+    // Note: Bend dependency is monitored through specific tests that directly detect
+    // excessive curling under floor conditions. Complete height convergence
+    // (bend-independent) is not guaranteed by the current model.
 }
