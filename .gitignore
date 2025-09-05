@@ -41,3 +41,6 @@ logs/
 
 # DocFX local site output
 docs/docfx/_site/
+
+# Local helper scripts and notes (do not commit)
+.codex/

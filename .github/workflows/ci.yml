@@ -7,51 +7,45 @@ on:
     branches: [ master, main ]
 
 jobs:
-  tests-velocity:
-    name: Tests (Velocity Default)
+  tests:
+    name: Tests (sdk=${{ matrix.sdk }}, xpbd=${{ matrix.extraProp != '' }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: [ '9.0.x', '8.0.x' ]
+        extraProp: [ '', '-p:DotClothEnableExperimentalXpbd=true' ]
+    env:
+      MSBUILDNOINPROCNODE: 1
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET
+      - name: Setup .NET (${{ matrix.sdk }})
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            9.0.x
-            8.0.x
+          dotnet-version: ${{ matrix.sdk }}
+
+      - name: Set TFM for vstest
+        shell: bash
+        run: |
+          if [ "${{ matrix.sdk }}" = "9.0.x" ]; then echo "TFM=net9.0" >> $GITHUB_ENV; else echo "TFM=net8.0" >> $GITHUB_ENV; fi
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore -p:TargetFramework=${TFM}
 
-      - name: Build (Release, no experimental defines)
-        run: dotnet build -c Release --no-restore -p:DotClothExtraDefines=
+      - name: Build (Release)
+        run: >-
+          dotnet build -c Release --no-restore -p:TargetFramework=${TFM}
+          -p:UseSharedCompilation=false -maxcpucount:1
+          ${{ matrix.extraProp }}
 
-      - name: Test (Release, Velocity)
-        run: dotnet test -c Release --no-build --verbosity normal -p:DotClothExtraDefines=
+      - name: Test (Release via vstest)
+        shell: bash
+        run: >-
+          dotnet vstest tests/DotCloth.Tests/bin/Release/${TFM}/DotCloth.Tests.dll
+          --ResultsDirectory:logs --logger:"trx;LogFileName=results.trx"
 
       - name: Build MonoGame Sample (Release)
-        run: dotnet build examples/DotCloth.MonoGameSample -c Release --no-restore
-
-  tests-xpbd:
-    name: Tests (XPBD Experimental)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: |
-            9.0.x
-            8.0.x
-
-      - name: Restore
-        run: dotnet restore
-
-      - name: Build (Release, XPBD define)
-        run: dotnet build -c Release --no-restore -p:DotClothExtraDefines=DOTCLOTH_EXPERIMENTAL_XPBD
-
-      - name: Test (Release, XPBD)
-        run: dotnet test -c Release --no-build --verbosity normal -p:DotClothExtraDefines=DOTCLOTH_EXPERIMENTAL_XPBD
+        if: ${{ matrix.extraProp == '' }}
+        run: dotnet build examples/DotCloth.MonoGameSample -c Release --no-restore -p:TargetFramework=${TFM}

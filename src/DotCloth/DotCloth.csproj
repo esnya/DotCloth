@@ -14,7 +14,8 @@
     <EnablePackageValidation>true</EnablePackageValidation>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <!-- Allow CI to inject extra conditional defines (e.g., DOTCLOTH_EXPERIMENTAL_XPBD) -->
-    <!-- No experimental defines enabled by default; CI passes via DotClothExtraDefines -->
+    <!-- Preferred flag: DotClothEnableExperimentalXpbd=true → maps to DotClothExtraDefines -->
+    <DotClothExtraDefines Condition="'$(DotClothEnableExperimentalXpbd)'=='true'">DOTCLOTH_EXPERIMENTAL_XPBD</DotClothExtraDefines>
     <DefineConstants>$(DefineConstants);$(DotClothExtraDefines)</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
