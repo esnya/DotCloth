@@ -4,6 +4,8 @@
     <RootNamespace>DotCloth.Tests</RootNamespace>
     <!-- Tests run on latest framework only to ensure determinism and strict checks -->
     <TargetFrameworks>net9.0</TargetFrameworks>
+    <!-- XPBD tests are OPT-IN. Enable by passing -p:DotClothEnableExperimentalXpbd=true -->
+    <DotClothExtraDefines Condition="'$(DotClothEnableExperimentalXpbd)'=='true'">DOTCLOTH_EXPERIMENTAL_XPBD</DotClothExtraDefines>
     <!-- Allow CI/command line to toggle XPBD tests in sync with the library -->
     <DefineConstants>$(DefineConstants);$(DotClothExtraDefines)</DefineConstants>
   </PropertyGroup>

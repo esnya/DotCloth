@@ -7,13 +7,14 @@ on:
     branches: [ master, main ]
 
 jobs:
-  build:
+  tests-velocity:
+    name: Tests (Velocity Default)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET 9
+      - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
@@ -23,12 +24,34 @@ jobs:
       - name: Restore
         run: dotnet restore
 
-      - name: Build (Release)
-        run: dotnet build -c Release --no-restore
+      - name: Build (Release, no experimental defines)
+        run: dotnet build -c Release --no-restore -p:DotClothExtraDefines=
 
-      - name: Test (Release)
-        run: dotnet test -c Release --no-build --verbosity normal
+      - name: Test (Release, Velocity)
+        run: dotnet test -c Release --no-build --verbosity normal -p:DotClothExtraDefines=
 
       - name: Build MonoGame Sample (Release)
         run: dotnet build examples/DotCloth.MonoGameSample -c Release --no-restore
 
+  tests-xpbd:
+    name: Tests (XPBD Experimental)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            9.0.x
+            8.0.x
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build (Release, XPBD define)
+        run: dotnet build -c Release --no-restore -p:DotClothExtraDefines=DOTCLOTH_EXPERIMENTAL_XPBD
+
+      - name: Test (Release, XPBD)
+        run: dotnet test -c Release --no-build --verbosity normal -p:DotClothExtraDefines=DOTCLOTH_EXPERIMENTAL_XPBD
