@@ -19,12 +19,13 @@ public sealed class VelocityImpulseSolver : IClothSimulator
     private const float Omega = 0.9f;                  // under-relaxation (0<ω<=1)
     private const float CfmStretch = 1e-3f;
     private const float CfmTether = 1e-5f;
-    private const float CfmBend = 2e-2f;            // bend softer than stretch
+    private const float CfmBend = 2e-3f;            // bend softness
     private const float LambdaClampStretch = 0.20f;
     private const float LambdaClampTether = 1.20f;
     private const float OmegaTether = 1.0f;            // no under-relaxation for tether
     private const float LambdaClampBend = 0.03f;
-    private const float BendBetaScale = 0.35f;
+    private const float BendBetaScale = 2.5f;
+    private const float ReferenceEdgeLength = 0.25f;
 
     // Compression handling scales
     private const float CompressBetaScale = 0.90f;
@@ -61,6 +62,7 @@ public sealed class VelocityImpulseSolver : IClothSimulator
     }
     private Edge[] _edges = Array.Empty<Edge>();
     private int[][] _edgeBatches = Array.Empty<int[]>();
+    private float _avgEdgeLength;
 
     // Bend constraints (distance across opposite vertices of adjacent triangles)
     private struct Bend
@@ -114,6 +116,9 @@ public sealed class VelocityImpulseSolver : IClothSimulator
 
         ValidateTriangles(triangles, _vertexCount);
         (_edges, _bends, _edgeBatches, _bendBatches) = BuildTopology(positions, triangles);
+        float sum = 0f;
+        for (int i = 0; i < _edges.Length; i++) sum += _edges[i].RestLength;
+        _avgEdgeLength = _edges.Length > 0 ? sum / _edges.Length : ReferenceEdgeLength;
         // Build triangle list and rest areas (experimental)
         // (Removed) Experimental triangle-area stabilization init.
         SortBatchesByVertexIndex();
@@ -143,7 +148,9 @@ public sealed class VelocityImpulseSolver : IClothSimulator
 
         // Map 0..1 stiffness to Baumgarte beta coefficients
         float betaStretch = MapStiffnessToBeta(_cfg.StretchStiffness, dt, iterations);
-        float betaBend = MapStiffnessToBeta(_cfg.BendStiffness, dt, iterations) * BendBetaScale;
+        float edgeScale = Math.Clamp(ReferenceEdgeLength / MathF.Max(_avgEdgeLength, 1e-6f), 0.5f, 2f);
+        float betaBend = MapStiffnessToBeta(_cfg.BendStiffness, dt, iterations) * BendBetaScale * edgeScale;
+        float cfmBend = CfmBend / edgeScale;
         float betaTether = MathF.Min(0.75f, MapStiffnessToBeta(_cfg.TetherStiffness, dt, iterations) * 1.35f);
 
         bool hasStretch = _cfg.StretchStiffness > 0f && _edges.Length > 0;
@@ -311,7 +318,7 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                             if (w <= 0f) continue;
                             var rel = Vector3.Dot(velocities[l] - velocities[k], n);
                             float bterm = betaBend * C / dt;
-                            float denom = w + CfmBend;
+                            float denom = w + cfmBend;
                             float lambda = -(rel + bterm) / denom;
                             lambda = MathF.Max(-LambdaClampBend, MathF.Min(LambdaClampBend, lambda));
                             var dv = (lambda * Omega) * n;
