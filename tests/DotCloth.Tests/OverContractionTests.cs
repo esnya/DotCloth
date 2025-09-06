@@ -180,9 +180,8 @@ public class OverContractionTests
         // TEMP: With bend disabled and current stretch/compress settings, the
         // minimum observed edge ratio in stable runs is ~0.56–0.57. Relax to reduce
         // CI flakiness while keeping over‑contraction in check. Plan to restore → 0.80.
-        const float minEdgeRatio = MinEdgeRatioThreshold; // temporarily allow down to ~56%
-        Console.WriteLine($"Edge ratios: min={minRatio:F3}, avg={avgRatio:F3} (minLimit={minEdgeRatio:F2})");
-        Assert.True(minRatio >= minEdgeRatio, $"Edge over-contraction: min ratio {minRatio:F3} < {minEdgeRatio:F2} (avg={avgRatio:F3})");
+        Console.WriteLine($"Edge ratios: min={minRatio:F3}, avg={avgRatio:F3} (minLimit={MinEdgeRatioThreshold:F2})");
+        Assert.True(minRatio >= MinEdgeRatioThreshold, $"Edge over-contraction: min ratio {minRatio:F3} < {MinEdgeRatioThreshold:F2} (avg={avgRatio:F3})");
     }
 
     [Fact]
