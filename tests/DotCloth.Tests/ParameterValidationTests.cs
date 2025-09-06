@@ -12,7 +12,7 @@ public class ParameterValidationTests
     {
         var s = new PbdSolver();
         var p = new ClothParameters();
-        var positions = new[] { new Vector3(0,0,0) };
+        var positions = new[] { new Vector3(0, 0, 0) };
         var tris = new[] { 0, 1, 2 };
         Assert.Throws<ArgumentOutOfRangeException>(() => s.Initialize(positions, tris, p));
     }
@@ -21,7 +21,7 @@ public class ParameterValidationTests
     public void UpdateParameters_ClampsRanges()
     {
         var s = new PbdSolver();
-        var positions = new[] { new Vector3(0,0,0) };
+        var positions = new[] { new Vector3(0, 0, 0) };
         s.Initialize(positions, Array.Empty<int>(), new ClothParameters());
         var p = new ClothParameters
         {

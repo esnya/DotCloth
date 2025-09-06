@@ -9,20 +9,20 @@ static class Perf
     {
         var pos = new Vector3[n * n];
         for (int y = 0; y < n; y++)
-        for (int x = 0; x < n; x++)
-            pos[y * n + x] = new Vector3(x * spacing, 0, -y * spacing);
+            for (int x = 0; x < n; x++)
+                pos[y * n + x] = new Vector3(x * spacing, 0, -y * spacing);
         var tris = new int[(n - 1) * (n - 1) * 6];
         int t = 0;
         for (int y = 0; y < n - 1; y++)
-        for (int x = 0; x < n - 1; x++)
-        {
-            int i = y * n + x;
-            int iRight = i + 1;
-            int iDown = i + n;
-            int iDownRight = i + n + 1;
-            tris[t++] = i; tris[t++] = iRight; tris[t++] = iDown;
-            tris[t++] = iDown; tris[t++] = iRight; tris[t++] = iDownRight;
-        }
+            for (int x = 0; x < n - 1; x++)
+            {
+                int i = y * n + x;
+                int iRight = i + 1;
+                int iDown = i + n;
+                int iDownRight = i + n + 1;
+                tris[t++] = i; tris[t++] = iRight; tris[t++] = iDown;
+                tris[t++] = iDown; tris[t++] = iRight; tris[t++] = iDownRight;
+            }
         return (pos, tris);
     }
 

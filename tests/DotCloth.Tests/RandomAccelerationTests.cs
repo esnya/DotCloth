@@ -10,8 +10,8 @@ public class RandomAccelerationTests
     [Fact]
     public void RandomAcceleration_IsDeterministicWithSeed()
     {
-        var positionsA = new[] { new Vector3(0,0,0) };
-        var positionsB = new[] { new Vector3(0,0,0) };
+        var positionsA = new[] { new Vector3(0, 0, 0) };
+        var positionsB = new[] { new Vector3(0, 0, 0) };
         var velocitiesA = new[] { Vector3.Zero };
         var velocitiesB = new[] { Vector3.Zero };
         var tris = Array.Empty<int>();

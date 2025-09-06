@@ -24,7 +24,7 @@ internal sealed class CollidersScenario : IScenario
         var sim = new PbdSolver();
         sim.Initialize(pos, tri, DefaultParams());
         // Pin two top corners only
-        sim.PinVertices((n-1)*n + 0, (n-1)*n + (n-1));
+        sim.PinVertices((n - 1) * n + 0, (n - 1) * n + (n - 1));
         _cloths.Add(new ClothSim(sim, pos, vel, tri));
         _time = 0f;
     }
@@ -43,23 +43,23 @@ internal sealed class CollidersScenario : IScenario
         dst.Add(new DotCloth.Simulation.Collision.PlaneCollider(new Vector3(0, 1, 0), 0f));
         // Moving sphere
         var r = 0.35f;
-        var c = new Vector3(MathF.Sin(_time) * 0.6f, 0.4f + 0.2f * MathF.Cos(_time*0.7f), 0.0f);
+        var c = new Vector3(MathF.Sin(_time) * 0.6f, 0.4f + 0.2f * MathF.Cos(_time * 0.7f), 0.0f);
         dst.Add(new DotCloth.Simulation.Collision.SphereCollider(c, r));
         // Oscillating capsule sweeping under the cloth
-        var p0 = new Vector3(-0.7f + 0.2f*MathF.Sin(_time*0.5f), 0.25f, -0.2f);
-        var p1 = new Vector3( 0.7f + 0.2f*MathF.Sin(_time*0.5f), 0.25f,  0.2f);
+        var p0 = new Vector3(-0.7f + 0.2f * MathF.Sin(_time * 0.5f), 0.25f, -0.2f);
+        var p1 = new Vector3(0.7f + 0.2f * MathF.Sin(_time * 0.5f), 0.25f, 0.2f);
         dst.Add(new DotCloth.Simulation.Collision.CapsuleCollider(p0, p1, 0.15f));
     }
 
     public void GetColliderVisualsFor(int clothIndex, List<ColliderViz> dst)
     {
         dst.Clear();
-        dst.Add(new ColliderViz { Kind = ColliderKind.Plane, Normal = new Vector3(0,1,0), Offset = 0f });
+        dst.Add(new ColliderViz { Kind = ColliderKind.Plane, Normal = new Vector3(0, 1, 0), Offset = 0f });
         var r = 0.35f;
-        var c = new Vector3(MathF.Sin(_time) * 0.6f, 0.4f + 0.2f * MathF.Cos(_time*0.7f), 0.0f);
+        var c = new Vector3(MathF.Sin(_time) * 0.6f, 0.4f + 0.2f * MathF.Cos(_time * 0.7f), 0.0f);
         dst.Add(new ColliderViz { Kind = ColliderKind.Sphere, Center = c, Radius = r });
-        var p0 = new Vector3(-0.7f + 0.2f*MathF.Sin(_time*0.5f), 0.25f, -0.2f);
-        var p1 = new Vector3( 0.7f + 0.2f*MathF.Sin(_time*0.5f), 0.25f,  0.2f);
+        var p0 = new Vector3(-0.7f + 0.2f * MathF.Sin(_time * 0.5f), 0.25f, -0.2f);
+        var p1 = new Vector3(0.7f + 0.2f * MathF.Sin(_time * 0.5f), 0.25f, 0.2f);
         dst.Add(new ColliderViz { Kind = ColliderKind.Capsule, P0 = p0, P1 = p1, Radius = 0.15f });
     }
 
