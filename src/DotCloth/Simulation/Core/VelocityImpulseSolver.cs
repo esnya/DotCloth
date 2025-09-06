@@ -18,12 +18,12 @@ public sealed class VelocityImpulseSolver : IClothSimulator
     // Solver tuning constants (class-level for clarity and maintainability)
     private const float Omega = 0.9f;                  // under-relaxation (0<ω<=1)
     private const float CfmStretch = 1e-3f;
-    private const float CfmTether  = 1e-5f;
-    private const float CfmBend    = 3e-3f;            // bend softer than stretch
+    private const float CfmTether = 1e-5f;
+    private const float CfmBend = 3e-3f;            // bend softer than stretch
     private const float LambdaClampStretch = 0.20f;
-    private const float LambdaClampTether  = 1.20f;
+    private const float LambdaClampTether = 1.20f;
     private const float OmegaTether = 1.0f;            // no under-relaxation for tether
-    private const float LambdaClampBend    = 0.10f;
+    private const float LambdaClampBend = 0.10f;
 
     // Compression handling scales
     private const float CompressBetaScale = 0.90f;
@@ -142,7 +142,7 @@ public sealed class VelocityImpulseSolver : IClothSimulator
 
         // Map 0..1 stiffness to Baumgarte beta coefficients
         float betaStretch = MapStiffnessToBeta(_cfg.StretchStiffness, dt, iterations);
-        float betaBend = MapStiffnessToBeta(MathF.Min(_cfg.BendStiffness, _cfg.StretchStiffness), dt, iterations) * 0.8f; // moderate bend
+        float betaBend = MapStiffnessToBeta(_cfg.BendStiffness, dt, iterations) * 0.8f; // moderate bend, independent from stretch
         float betaTether = MathF.Min(0.75f, MapStiffnessToBeta(_cfg.TetherStiffness, dt, iterations) * 1.35f);
 
         bool hasStretch = _cfg.StretchStiffness > 0f && _edges.Length > 0;
@@ -258,10 +258,10 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                             if (C > 0f)
                             {
                                 float bterm = -betaStretch * C / dt; // Baumgarte stabilization
-                            float denom = w + CfmStretch;
+                                float denom = w + CfmStretch;
                                 float lambda = -(rel + bterm) / denom;
                                 // impulse clamp (tension)
-                            lambda = MathF.Max(-LambdaClampStretch, MathF.Min(LambdaClampStretch, lambda));
+                                lambda = MathF.Max(-LambdaClampStretch, MathF.Min(LambdaClampStretch, lambda));
                                 var dv = (lambda * Omega) * n;
                                 velocities[i] -= edge.Wi * dv;
                                 velocities[j] += edge.Wj * dv;
@@ -603,9 +603,9 @@ public sealed class VelocityImpulseSolver : IClothSimulator
         }
         RecomputeEdgeMasses();
         RecomputeBendMasses();
-        #if DOTCLOTH_EXPERIMENTAL_AREA_STAB
+#if DOTCLOTH_EXPERIMENTAL_AREA_STAB
         RecomputeTriMasses();
-        #endif
+#endif
     }
 
     /// <inheritdoc />
@@ -623,9 +623,9 @@ public sealed class VelocityImpulseSolver : IClothSimulator
         }
         RecomputeEdgeMasses();
         RecomputeBendMasses();
-        #if DOTCLOTH_EXPERIMENTAL_AREA_STAB
+#if DOTCLOTH_EXPERIMENTAL_AREA_STAB
         RecomputeTriMasses();
-        #endif
+#endif
     }
 
     /// <inheritdoc />
@@ -638,9 +638,9 @@ public sealed class VelocityImpulseSolver : IClothSimulator
         for (int i = 0; i < _vertexCount; i++) _invMass[i] = inv;
         RecomputeEdgeMasses();
         RecomputeBendMasses();
-        #if DOTCLOTH_EXPERIMENTAL_AREA_STAB
+#if DOTCLOTH_EXPERIMENTAL_AREA_STAB
         RecomputeTriMasses();
-        #endif
+#endif
     }
 
     /// <inheritdoc />
