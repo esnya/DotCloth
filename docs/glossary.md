@@ -17,3 +17,4 @@ Glossary (EN → JA)
 - Triangle Indices → 三角形インデックス
 - Inverse Mass → 逆質量
 
+- Codex Cloud → Codex クラウド
