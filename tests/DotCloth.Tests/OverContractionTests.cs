@@ -12,7 +12,7 @@ public class OverContractionTests
     private const float MinEdgeRatioThreshold = 0.62f;
     private static IEnumerable<(int i, int j)> UniqueEdges(ReadOnlySpan<int> tris)
     {
-        var set = new HashSet<(int,int)>();
+        var set = new HashSet<(int, int)>();
         for (int t = 0; t < tris.Length; t += 3)
         {
             int a = tris[t];
@@ -253,11 +253,11 @@ public class OverContractionTests
         float chain = (n - 1) * spacing;
         float yTop = chain; // top row initial height in this grid layout
         float planeOffset = yTop - 0.5f * chain; // = 0.5 * chain
-        sim.SetColliders(new[] { new DotCloth.Simulation.Collision.PlaneCollider(new Vector3(0,1,0), planeOffset) });
+        sim.SetColliders(new[] { new DotCloth.Simulation.Collision.PlaneCollider(new Vector3(0, 1, 0), planeOffset) });
         // Reconfirm relation: floor-to-pin distance ~= half cloth height
         float distFloorToPin = yTop - planeOffset;
         Assert.True(MathF.Abs(distFloorToPin - 0.5f * chain) <= 0.05f * chain,
-            $"Floor-pin distance not ~half cloth height: dist={distFloorToPin:F3}, chain/2={(0.5f*chain):F3}");
+            $"Floor-pin distance not ~half cloth height: dist={distFloorToPin:F3}, chain/2={(0.5f * chain):F3}");
 
         // Simulate ~10 seconds at 60 FPS
         float dt = 1f / 60f;
@@ -271,22 +271,50 @@ public class OverContractionTests
         Assert.True(pos[right].Y >= -1e-5f, $"Right corner below floor: y={pos[right].Y:F6}");
     }
 
-    private static Dictionary<(int,int), (int a,int b,int c)[]> BuildAdjacency(ReadOnlySpan<int> tris)
+    [Fact]
+    public void Hanging_WithPlane_FreeEdgeWidth_NotCollapsed_After10s()
     {
-        var map = new Dictionary<(int,int), List<(int a,int b,int c)>>();
+        int n = 20;
+        float spacing = 0.1f;
+        var (pos0, tris) = MakeGrid(n, spacing);
+        var pos = (Vector3[])pos0.Clone();
+        var vel = new Vector3[pos.Length];
+        var p = MinimalParams();
+        var sim = new PbdSolver();
+        sim.Initialize(pos, tris, p);
+        var pins = new int[n];
+        for (int i = 0; i < n; i++) pins[i] = (n - 1) * n + i;
+        sim.PinVertices(pins);
+        float chain = (n - 1) * spacing;
+        float yTop = chain;
+        float planeOffset = yTop - 0.5f * chain;
+        sim.SetColliders(new[] { new DotCloth.Simulation.Collision.PlaneCollider(new Vector3(0, 1, 0), planeOffset) });
+        float dt = 1f / 60f;
+        for (int i = 0; i < 600; i++) sim.Step(dt, pos, vel);
+        int left = 0 * n + 0;
+        int right = 0 * n + (n - 1);
+        float width = pos[right].X - pos[left].X;
+        Console.WriteLine($"Free edge width on floor: {width:F3} m");
+        const float minWidth = 1.8f;
+        Assert.True(width >= minWidth, $"Free edge width collapsed: {width:F3} < {minWidth:F2}");
+    }
+
+    private static Dictionary<(int, int), (int a, int b, int c)[]> BuildAdjacency(ReadOnlySpan<int> tris)
+    {
+        var map = new Dictionary<(int, int), List<(int a, int b, int c)>>();
         for (int t = 0; t < tris.Length; t += 3)
         {
-            int a = tris[t]; int b = tris[t+1]; int c = tris[t+2];
+            int a = tris[t]; int b = tris[t + 1]; int c = tris[t + 2];
             void Add(int u, int v, int w)
             {
                 int i = Math.Min(u, v); int j = Math.Max(u, v);
                 var key = (i, j);
-                if (!map.TryGetValue(key, out var list)) { list = new List<(int,int,int)>(); map[key] = list; }
+                if (!map.TryGetValue(key, out var list)) { list = new List<(int, int, int)>(); map[key] = list; }
                 list.Add((u, v, w));
             }
-            Add(a,b,c); Add(b,c,a); Add(c,a,b);
+            Add(a, b, c); Add(b, c, a); Add(c, a, b);
         }
-        var res = new Dictionary<(int,int), (int a,int b,int c)[]>();
+        var res = new Dictionary<(int, int), (int a, int b, int c)[]>();
         foreach (var kv in map)
         {
             var arr = kv.Value.ToArray();
@@ -304,8 +332,8 @@ public class OverContractionTests
             var faces = kv.Value;
             if (faces.Length < 2) continue; // boundary edge
             // Two incident triangles share the edge; compute their normals
-            var (a1,b1,c1) = faces[0];
-            var (a2,b2,c2) = faces[1];
+            var (a1, b1, c1) = faces[0];
+            var (a2, b2, c2) = faces[1];
             Vector3 n1 = Vector3.Cross(pos[b1] - pos[a1], pos[c1] - pos[a1]);
             Vector3 n2 = Vector3.Cross(pos[b2] - pos[a2], pos[c2] - pos[a2]);
             float l1 = n1.Length(); float l2 = n2.Length();
@@ -334,11 +362,11 @@ public class OverContractionTests
         float chain = (n - 1) * spacing;
         float yTop = chain;
         float planeOffset = yTop - 0.5f * chain; // mid-height
-        sim.SetColliders(new[] { new DotCloth.Simulation.Collision.PlaneCollider(new Vector3(0,1,0), planeOffset) });
+        sim.SetColliders(new[] { new DotCloth.Simulation.Collision.PlaneCollider(new Vector3(0, 1, 0), planeOffset) });
         // Reconfirm relation
         float distFloorToPin = yTop - planeOffset;
         Assert.True(MathF.Abs(distFloorToPin - 0.5f * chain) <= 0.05f * chain,
-            $"Floor-pin distance not ~half cloth height: dist={distFloorToPin:F3}, chain/2={(0.5f*chain):F3}");
+            $"Floor-pin distance not ~half cloth height: dist={distFloorToPin:F3}, chain/2={(0.5f * chain):F3}");
 
         float dt = 1f / 60f;
         for (int i = 0; i < 300; i++) sim.Step(dt, pos, vel); // ~5s
@@ -364,7 +392,7 @@ public class OverContractionTests
         sim.Initialize(pos, tris, p);
         var pins = new int[n]; for (int i = 0; i < n; i++) pins[i] = (n - 1) * n + i; sim.PinVertices(pins);
         float chain = (n - 1) * spacing; float yTop = chain; float planeOffset = yTop - 0.5f * chain;
-        sim.SetColliders(new[] { new DotCloth.Simulation.Collision.PlaneCollider(new Vector3(0,1,0), planeOffset) });
+        sim.SetColliders(new[] { new DotCloth.Simulation.Collision.PlaneCollider(new Vector3(0, 1, 0), planeOffset) });
 
         float dt = 1f / 60f; for (int i = 0; i < 600; i++) sim.Step(dt, pos, vel);
         float avgY = 0f; for (int x = 0; x < n; x++) avgY += pos[x].Y; avgY /= n;
@@ -387,7 +415,7 @@ public class OverContractionTests
         sim.Initialize(pos, tris, p);
         var pins = new int[n]; for (int i = 0; i < n; i++) pins[i] = (n - 1) * n + i; sim.PinVertices(pins);
         float chain = (n - 1) * spacing; float yTop = chain; float planeOffset = yTop - 0.5f * chain;
-        sim.SetColliders(new[] { new DotCloth.Simulation.Collision.PlaneCollider(new Vector3(0,1,0), planeOffset) });
+        sim.SetColliders(new[] { new DotCloth.Simulation.Collision.PlaneCollider(new Vector3(0, 1, 0), planeOffset) });
 
         float dt = 1f / 60f; for (int i = 0; i < 600; i++) sim.Step(dt, pos, vel);
         float avgY = 0f; for (int x = 0; x < n; x++) avgY += pos[x].Y; avgY /= n;
