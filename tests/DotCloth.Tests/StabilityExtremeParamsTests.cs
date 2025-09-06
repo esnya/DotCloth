@@ -14,7 +14,7 @@ public class StabilityExtremeParamsTests
         {
             new Vector3(0,0,0), new Vector3(1,0,0), new Vector3(0,-1,0), new Vector3(1,-1,0)
         };
-        var tris = new[] { 0,1,2, 2,1,3 };
+        var tris = new[] { 0, 1, 2, 2, 1, 3 };
         var p = new ClothParameters
         {
             UseGravity = true,
@@ -33,7 +33,7 @@ public class StabilityExtremeParamsTests
         var vel = new Vector3[pos.Length];
         s.Initialize(pos, tris, p);
         s.PinVertices(0); // stabilize with a pin
-        s.SetTetherAnchors(new [] { 0 });
+        s.SetTetherAnchors(new[] { 0 });
         float dt = 0.005f;
         for (int k = 0; k < 500; k++)
         {

@@ -24,21 +24,21 @@ internal sealed class XLargeScenario : IScenario
         // Heavier grid: more instances and larger cloths
         // 30 instances
         for (int z = 0; z < Gz; z++)
-        for (int x = 0; x < Gx; x++)
-        {
-            Geometry.MakeGrid(Nx, Ny, GridSpacing, out var pos, out var tri);
-            var vel = new Vector3[pos.Length];
-            // Only horizontal offset; keep height same as Minimal (~1.5)
-            var offset = new Vector3((x - (Gx-1)*0.5f) * InstancePitch, 0.0f, (z - (Gz-1)*0.5f) * InstancePitch);
-            for (int i = 0; i < pos.Length; i++) pos[i] += offset;
-            var sim = new PbdSolver();
-            sim.Initialize(pos, tri, DefaultParams());
-            // Pin top row
-            int n = Nx; var pins = new int[n];
-            for (int i = 0; i < n; i++) pins[i] = (n - 1) * n + i;
-            sim.PinVertices(pins);
-            _cloths.Add(new ClothSim(sim, pos, vel, tri));
-        }
+            for (int x = 0; x < Gx; x++)
+            {
+                Geometry.MakeGrid(Nx, Ny, GridSpacing, out var pos, out var tri);
+                var vel = new Vector3[pos.Length];
+                // Only horizontal offset; keep height same as Minimal (~1.5)
+                var offset = new Vector3((x - (Gx - 1) * 0.5f) * InstancePitch, 0.0f, (z - (Gz - 1) * 0.5f) * InstancePitch);
+                for (int i = 0; i < pos.Length; i++) pos[i] += offset;
+                var sim = new PbdSolver();
+                sim.Initialize(pos, tri, DefaultParams());
+                // Pin top row
+                int n = Nx; var pins = new int[n];
+                for (int i = 0; i < n; i++) pins[i] = (n - 1) * n + i;
+                sim.PinVertices(pins);
+                _cloths.Add(new ClothSim(sim, pos, vel, tri));
+            }
     }
 
     public void Reset() => Initialize();
@@ -50,27 +50,27 @@ internal sealed class XLargeScenario : IScenario
         dst.Add(new DotCloth.Simulation.Collision.PlaneCollider(new Vector3(0, 1, 0), 0f));
         int ix = clothIndex % Gx;
         int iz = clothIndex / Gx;
-        var basePos = new Vector3((ix - (Gx-1)*0.5f) * InstancePitch, 0.45f, (iz - (Gz-1)*0.5f) * InstancePitch);
+        var basePos = new Vector3((ix - (Gx - 1) * 0.5f) * InstancePitch, 0.45f, (iz - (Gz - 1) * 0.5f) * InstancePitch);
         float pinnedZ = (Ny - 1) * 0.5f * GridSpacing;
         basePos.Z += pinnedZ;
         float phase = (float)(0.4 * clothIndex);
         float t = _time + phase;
-        var c = basePos + new Vector3(0.6f*MathF.Sin(1.1f*t), 0.12f+0.18f*MathF.Cos(0.8f*t), 0.6f*MathF.Cos(0.9f*t));
+        var c = basePos + new Vector3(0.6f * MathF.Sin(1.1f * t), 0.12f + 0.18f * MathF.Cos(0.8f * t), 0.6f * MathF.Cos(0.9f * t));
         dst.Add(new DotCloth.Simulation.Collision.SphereCollider(c, 0.28f));
     }
 
     public void GetColliderVisualsFor(int clothIndex, List<ColliderViz> dst)
     {
         dst.Clear();
-        dst.Add(new ColliderViz { Kind = ColliderKind.Plane, Normal = new Vector3(0,1,0), Offset = 0f });
+        dst.Add(new ColliderViz { Kind = ColliderKind.Plane, Normal = new Vector3(0, 1, 0), Offset = 0f });
         int ix = clothIndex % Gx;
         int iz = clothIndex / Gx;
-        var basePos = new Vector3((ix - (Gx-1)*0.5f) * InstancePitch, 0.45f, (iz - (Gz-1)*0.5f) * InstancePitch);
+        var basePos = new Vector3((ix - (Gx - 1) * 0.5f) * InstancePitch, 0.45f, (iz - (Gz - 1) * 0.5f) * InstancePitch);
         float pinnedZ = (Ny - 1) * 0.5f * GridSpacing;
         basePos.Z += pinnedZ;
         float phase = (float)(0.4 * clothIndex);
         float t = _time + phase;
-        var c = basePos + new Vector3(0.6f*MathF.Sin(1.1f*t), 0.12f+0.18f*MathF.Cos(0.8f*t), 0.6f*MathF.Cos(0.9f*t));
+        var c = basePos + new Vector3(0.6f * MathF.Sin(1.1f * t), 0.12f + 0.18f * MathF.Cos(0.8f * t), 0.6f * MathF.Cos(0.9f * t));
         dst.Add(new ColliderViz { Kind = ColliderKind.Sphere, Center = c, Radius = 0.28f });
     }
 

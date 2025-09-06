@@ -19,7 +19,7 @@ public class PbdSolverPinAndBendTests
             new Vector3(1, 0, 0), //1
             new Vector3(1, -1, 0), //2
         };
-        var triangles = new[] { 0,1,2, 0,2,1 }; // share edges in different winding
+        var triangles = new[] { 0, 1, 2, 0, 2, 1 }; // share edges in different winding
         return (positions, triangles);
     }
 
@@ -59,7 +59,7 @@ public class PbdSolverPinAndBendTests
             new Vector3(0, -1, 0), //2
             new Vector3(1, -1, 0), //3
         };
-        var tris = new[] { 0,1,2, 2,1,3 }; // shared edge (1,2) with opposite vertices 0 and 3
+        var tris = new[] { 0, 1, 2, 2, 1, 3 }; // shared edge (1,2) with opposite vertices 0 and 3
         var p = new ClothParameters { UseGravity = false, BendStiffness = 1.0f, Iterations = 20 };
         var solver = new PbdSolver();
         var v = new Vector3[positions.Length];
@@ -72,7 +72,7 @@ public class PbdSolverPinAndBendTests
 
         float rest = Vector3.Distance(positions[0], positions[3]);
         float dt = 0.01f;
-        var unconstrained = Vector3.Distance(workPos[0], workPos[3] + workVel[3]*dt);
+        var unconstrained = Vector3.Distance(workPos[0], workPos[3] + workVel[3] * dt);
 
         solver.Step(dt, workPos, workVel);
         float after = Vector3.Distance(workPos[0], workPos[3]);

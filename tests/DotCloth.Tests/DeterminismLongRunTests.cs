@@ -14,7 +14,7 @@ public class DeterminismLongRunTests
         {
             new Vector3(0,0,0), new Vector3(1,0,0), new Vector3(0,-1,0), new Vector3(1,-1,0)
         };
-        var tris = new[] { 0,1,2, 2,1,3 };
+        var tris = new[] { 0, 1, 2, 2, 1, 3 };
         var p = new ClothParameters
         {
             UseGravity = true,
