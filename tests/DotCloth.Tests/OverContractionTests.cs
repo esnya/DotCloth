@@ -295,7 +295,7 @@ public class OverContractionTests
         int right = 0 * n + (n - 1);
         float width = pos[right].X - pos[left].X;
         Console.WriteLine($"Free edge width on floor: {width:F3} m");
-        const float minWidth = 1.2f;
+        const float minWidth = 1.8f;
         Assert.True(width >= minWidth, $"Free edge width collapsed: {width:F3} < {minWidth:F2}");
     }
 

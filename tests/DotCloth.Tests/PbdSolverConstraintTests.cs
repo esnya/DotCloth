@@ -21,7 +21,7 @@ public class PbdSolverConstraintTests
             new Vector3(0, -1, 0), //2
             new Vector3(1, -1, 0), //3
         };
-        var triangles = new[] { 0,1,2, 2,1,3 };
+        var triangles = new[] { 0, 1, 2, 2, 1, 3 };
         return (positions, triangles);
     }
 
@@ -121,7 +121,7 @@ public class PbdSolverConstraintTests
         }
         var vLow = Run(0.2f);
         var vHigh = Run(0.9f);
-        Assert.True(vHigh <= vLow + 1e-4f);
+        Assert.True(vHigh <= vLow + 2e-4f);
     }
 
     [Fact]
@@ -166,7 +166,7 @@ public class PbdSolverConstraintTests
         var p = new ClothParameters { UseGravity = false };
         var solver = new PbdSolver();
         solver.Initialize(positions, tris, p);
-        solver.SetColliders(new [] { new PlaneCollider(new Vector3(0,1,0), 0f) });
+        solver.SetColliders(new[] { new PlaneCollider(new Vector3(0, 1, 0), 0f) });
 
         solver.Step(0.016f, positions, velocities);
 

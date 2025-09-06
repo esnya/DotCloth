@@ -19,11 +19,12 @@ public sealed class VelocityImpulseSolver : IClothSimulator
     private const float Omega = 0.9f;                  // under-relaxation (0<ω<=1)
     private const float CfmStretch = 1e-3f;
     private const float CfmTether = 1e-5f;
-    private const float CfmBend = 1e-2f;            // bend softer than stretch
+    private const float CfmBend = 2e-2f;            // bend softer than stretch
     private const float LambdaClampStretch = 0.20f;
     private const float LambdaClampTether = 1.20f;
     private const float OmegaTether = 1.0f;            // no under-relaxation for tether
-    private const float LambdaClampBend = 0.05f;
+    private const float LambdaClampBend = 0.03f;
+    private const float BendBetaScale = 0.35f;
 
     // Compression handling scales
     private const float CompressBetaScale = 0.90f;
@@ -142,7 +143,7 @@ public sealed class VelocityImpulseSolver : IClothSimulator
 
         // Map 0..1 stiffness to Baumgarte beta coefficients
         float betaStretch = MapStiffnessToBeta(_cfg.StretchStiffness, dt, iterations);
-        float betaBend = MapStiffnessToBeta(_cfg.BendStiffness, dt, iterations) * 0.5f; // softer bend, independent from stretch
+        float betaBend = MapStiffnessToBeta(_cfg.BendStiffness, dt, iterations) * BendBetaScale;
         float betaTether = MathF.Min(0.75f, MapStiffnessToBeta(_cfg.TetherStiffness, dt, iterations) * 1.35f);
 
         bool hasStretch = _cfg.StretchStiffness > 0f && _edges.Length > 0;
