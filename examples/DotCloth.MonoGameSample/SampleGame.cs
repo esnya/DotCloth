@@ -47,6 +47,7 @@ public sealed class SampleGame : Game
     // Perf state
     private long _solverTicks;
     private double _emaFps, _emaSolverMs, _emaTotalMs, _emaSampleMs;
+    private readonly bool _xpbd = Type.GetType("DotCloth.Simulation.Core.XpbdSolver") is not null;
 
     public SampleGame()
     {
@@ -56,7 +57,7 @@ public sealed class SampleGame : Game
             PreferredBackBufferHeight = 720,
             PreferMultiSampling = true
         };
-        Window.Title = "DotCloth MonoGame Sample";
+        Window.Title = _xpbd ? "DotCloth MonoGame Sample (XPBD)" : "DotCloth MonoGame Sample";
         IsMouseVisible = true;
     }
 
@@ -298,7 +299,8 @@ public sealed class SampleGame : Game
         _emaSampleMs = Ema(_emaSampleMs, sampleMs, a);
         _emaTotalMs = Ema(_emaTotalMs, totalMs, a);
         int totalVerts = 0; foreach (var c in _cloths) totalVerts += c.Pos.Length;
-        Window.Title = $"DotCloth MonoGame Sample — {_scenario.Name} | FPS={_emaFps:F1} | Solver={_emaSolverMs:F2}ms | App={_emaSampleMs:F2}ms | Total={_emaTotalMs:F2}ms | Verts={totalVerts}";
+        var baseTitle = _xpbd ? "DotCloth MonoGame Sample (XPBD)" : "DotCloth MonoGame Sample";
+        Window.Title = $"{baseTitle} — {_scenario.Name} | FPS={_emaFps:F1} | Solver={_emaSolverMs:F2}ms | App={_emaSampleMs:F2}ms | Total={_emaTotalMs:F2}ms | Verts={totalVerts}";
     }
 
     private void LoadScenario(IScenario scenario)
