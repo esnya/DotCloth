@@ -19,6 +19,12 @@ public sealed class PlaneCollider : ICollider
         _offset = offset;
     }
 
+    /// <summary>Unit normal of the plane (read-only).</summary>
+    public Vector3 Normal => _normal;
+
+    /// <summary>Offset of the plane: points satisfy dot(n, x) = offset (read-only).</summary>
+    public float Offset => _offset;
+
     /// <inheritdoc />
     public void Resolve(ReadOnlySpan<Vector3> prevPositions, Span<Vector3> positions, Span<Vector3> velocities, float deltaTime, float thickness, float friction)
     {
