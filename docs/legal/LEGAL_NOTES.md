@@ -7,6 +7,7 @@ License
 
 Terminology and Third‑Party Rights
 - The terms “Position‑Based Dynamics (PBD)” and “Extended Position‑Based Dynamics (XPBD)” are used solely as descriptive labels for well‑known techniques in the literature. They do not imply endorsement, affiliation, or origin by any third party (including NVIDIA).
+- The library’s default solver operates at the velocity level and does not implement PBD or XPBD. An XPBD solver is available only when the `DOTCLOTH_EXPERIMENTAL_XPBD` compilation flag is defined.
 - No third‑party source code is included unless explicitly stated. All implementation is original based on publicly available publications and general numerical methods.
 - Patents/Trademarks: Some jurisdictions may have patents or other rights covering techniques related to PBD/XPBD or variants. Contributors and users are responsible for assessing applicability in their jurisdictions and seeking legal advice as necessary.
 

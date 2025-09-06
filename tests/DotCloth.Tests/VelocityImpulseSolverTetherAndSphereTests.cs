@@ -6,7 +6,7 @@ using Xunit;
 
 namespace DotCloth.Tests;
 
-public class PbdSolverTetherAndSphereTests
+public class VelocityImpulseSolverTetherAndSphereTests
 {
     [Fact]
     public void Tether_ReducesDistanceToRest()
@@ -15,7 +15,7 @@ public class PbdSolverTetherAndSphereTests
         var velocities = new[] { Vector3.Zero };
         var tris = Array.Empty<int>();
         var p = new ClothParameters { UseGravity = false, TetherStiffness = 1.0f, Iterations = 10 };
-        var solver = new PbdSolver();
+        var solver = new VelocityImpulseSolver();
         solver.Initialize(positions, tris, p);
 
         var rest = positions[0];
@@ -36,7 +36,7 @@ public class PbdSolverTetherAndSphereTests
         var velocities = new[] { Vector3.Zero };
         var tris = Array.Empty<int>();
         var p = new ClothParameters { UseGravity = false };
-        var solver = new PbdSolver();
+        var solver = new VelocityImpulseSolver();
         solver.Initialize(positions, tris, p);
         solver.SetColliders(new [] { new SphereCollider(Vector3.Zero, 0.5f) });
 

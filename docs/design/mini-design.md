@@ -2,13 +2,13 @@ DotCloth Mini Design (initial)
 ==============================
 
 Purpose
-- Provide a UnityCloth‑compatible, high‑performance XPBD‑based cloth solver for .NET 9.
+- Provide a UnityCloth‑compatible, high‑performance velocity‑level cloth solver for .NET 9. An XPBD solver is kept only for experiments behind a compile flag.
 
 Scope and Boundaries
 - In: cloth simulation core (XPBD), parameter mapping to UnityCloth, collision hooks, deterministic update path, multithread‑friendly API.
 - Out (initial): GPU acceleration, soft‑body volume constraints, cloth‑rigid broadphase, authoring tooling.
 
-Public API / Data Model (initial sketch)
+Public API / Data Model
 - `ClothParameters`: UnityCloth‑like fields (damping, stretch/bend stiffness, tether, friction, thickness, gravity scale, external accel, etc.).
 - `IClothSimulator`: `Initialize`, `Step(deltaTime, positions, velocities)`, `UpdateParameters`.
 - Data layout: `System.Numerics.Vector3` for positions/velocities; triangle indices as `int` array.
@@ -26,5 +26,5 @@ Test Strategy
 - Property tests where feasible (e.g., constraints reduce violation over iterations).
 
 Migration / Compatibility
-- If diverging from UnityCloth semantics, document mapping and migration notes in `docs/api/overview.md`.
+- Legacy XPBD solver available via `DOTCLOTH_EXPERIMENTAL_XPBD`. Default `PbdSolver` now wraps `VelocityImpulseSolver` to maintain samples.
 

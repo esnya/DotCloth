@@ -30,7 +30,7 @@ Usage Guide
 - See `docs/usage/guide.md` for end‑to‑end examples, patterns, and pitfalls.
 
 Collision Hooks
-- Implement `ICollider.Resolve(prevPositions, positions, velocities, dt, thickness, friction)` and pass to `PbdSolver.SetColliders(...)`.
+- Implement `ICollider.Resolve(prevPositions, positions, velocities, dt, thickness, friction)` and pass to `VelocityImpulseSolver.SetColliders(...)`.
 - Included: `PlaneCollider` (infinite plane), `SphereCollider` (center + radius), `CapsuleCollider` (segment + radius).
 - Receives previous positions to allow simple swept push-out and reduce tunneling.
 

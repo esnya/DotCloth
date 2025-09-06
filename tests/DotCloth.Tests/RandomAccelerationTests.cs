@@ -16,8 +16,8 @@ public class RandomAccelerationTests
         var velocitiesB = new[] { Vector3.Zero };
         var tris = Array.Empty<int>();
         var p = new ClothParameters { UseGravity = false, RandomAcceleration = 5f, RandomSeed = 42 };
-        var s1 = new PbdSolver();
-        var s2 = new PbdSolver();
+        var s1 = new VelocityImpulseSolver();
+        var s2 = new VelocityImpulseSolver();
         s1.Initialize(positionsA, tris, p);
         s2.Initialize(positionsB, tris, p);
 

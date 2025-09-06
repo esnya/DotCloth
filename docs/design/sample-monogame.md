@@ -9,7 +9,7 @@ Scope and Boundaries
 - Out (initial): content pipeline, textures/models, UI, advanced input, packaging.
 
 Public API / Data Model (integration surface)
-- Consumes `DotCloth` via `IClothSimulator` (`PbdSolver`), `ClothParameters`, and built-in colliders.
+- Consumes `DotCloth` via `IClothSimulator` (`PbdSolver` wrapper), `ClothParameters`, and built-in colliders.
 - Sample encapsulated in `examples/DotCloth.MonoGameSample` with program entry `Program` and `SampleGame : Game`.
 
 Placement and Responsibilities

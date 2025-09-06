@@ -7,7 +7,7 @@ Setup
 
 Initialize
 - Create `ClothParameters` aligned with your use case.
-- Create `PbdSolver` and call:
+- Create `VelocityImpulseSolver` and call:
   - `Initialize(positions, triangles, parameters)`
 
 Pinning

@@ -25,8 +25,8 @@ public class DeterminismLongRunTests
             Substeps = 2,
             RandomAcceleration = 0f,
         };
-        var s1 = new PbdSolver();
-        var s2 = new PbdSolver();
+        var s1 = new VelocityImpulseSolver();
+        var s2 = new VelocityImpulseSolver();
 
         var aPos = (Vector3[])positions.Clone();
         var bPos = (Vector3[])positions.Clone();

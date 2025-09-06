@@ -28,7 +28,7 @@ public class StabilityExtremeParamsTests
             Substeps = 4,
             ComplianceScale = 1e-6f,
         };
-        var s = new PbdSolver();
+        var s = new VelocityImpulseSolver();
         var pos = (Vector3[])positions.Clone();
         var vel = new Vector3[pos.Length];
         s.Initialize(pos, tris, p);
