@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         dotnet: [ '9.0.x', '8.0.x' ]
-        flag: [ '', 'DOTCLOTH_EXPERIMENTAL_XPBD' ]
+        define: [ '', '-p:DefineConstants=DOTCLOTH_EXPERIMENTAL_XPBD' ]
       fail-fast: false
     steps:
       - name: Checkout
@@ -27,26 +27,11 @@ jobs:
         run: dotnet restore
 
       - name: Build (Release)
-        run: |
-          if [ -n "${{ matrix.flag }}" ]; then
-            dotnet build -c Release --no-restore -p:DefineConstants="${{ matrix.flag }}"
-          else
-            dotnet build -c Release --no-restore
-          fi
+        run: dotnet build -c Release --no-restore ${{ matrix.define }}
 
       - name: Test (Release)
-        run: |
-          if [ -n "${{ matrix.flag }}" ]; then
-            dotnet test -c Release --no-build --verbosity normal -p:DefineConstants="${{ matrix.flag }}"
-          else
-            dotnet test -c Release --no-build --verbosity normal
-          fi
+        run: dotnet test -c Release --no-build --verbosity normal ${{ matrix.define }}
 
       - name: Build MonoGame Sample (Release)
-        run: |
-          if [ -n "${{ matrix.flag }}" ]; then
-            dotnet build examples/DotCloth.MonoGameSample -c Release --no-restore -p:DefineConstants="${{ matrix.flag }}"
-          else
-            dotnet build examples/DotCloth.MonoGameSample -c Release --no-restore
-          fi
+        run: dotnet build examples/DotCloth.MonoGameSample -c Release --no-restore ${{ matrix.define }}
 

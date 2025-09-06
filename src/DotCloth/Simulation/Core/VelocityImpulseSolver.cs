@@ -123,7 +123,6 @@ public sealed class VelocityImpulseSolver : IClothSimulator
             // iterate constraints
             for (int it = 0; it < iterations; it++)
             {
-                // positions from velocities
                 for (int i = 0; i < _vertexCount; i++)
                 {
                     positions[i] = _prev[i] + velocities[i] * dt;
@@ -133,7 +132,6 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                 float betaBend = MapStiffnessToBeta(_cfg.BendStiffness, dt, iterations) * 0.5f;
                 float betaTether = MapStiffnessToBeta(_cfg.TetherStiffness, dt, iterations);
 
-                // stretch
                 for (int b = 0; b < _edgeBatches.Length; b++)
                 {
                     var batch = _edgeBatches[b];
@@ -154,13 +152,18 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                         float w = e.WSum;
                         if (w <= 0f) continue;
                         float lambda = -(rel + bTerm) / w;
+                        lambda = Math.Clamp(lambda, -10f, 10f);
                         var dv = lambda * n;
                         velocities[i] -= e.Wi * dv;
                         velocities[j] += e.Wj * dv;
                     }
                 }
 
-                // bending
+                for (int i = 0; i < _vertexCount; i++)
+                {
+                    positions[i] = _prev[i] + velocities[i] * dt;
+                }
+
                 if (_bends.Length > 0 && _cfg.BendStiffness > 0f)
                 {
                     for (int bb = 0; bb < _bendBatches.Length; bb++)
@@ -183,6 +186,7 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                             float w = bend.WSum;
                             if (w <= 0f) continue;
                             float lambda = -(rel + bTerm) / w;
+                            lambda = Math.Clamp(lambda, -10f, 10f);
                             var dv = lambda * n;
                             velocities[k] -= bend.Wk * dv;
                             velocities[l] += bend.Wl * dv;
@@ -190,7 +194,11 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                     }
                 }
 
-                // tethers
+                for (int i = 0; i < _vertexCount; i++)
+                {
+                    positions[i] = _prev[i] + velocities[i] * dt;
+                }
+
                 if (_cfg.TetherStiffness > 0f)
                 {
                     for (int i = 0; i < _vertexCount; i++)
@@ -198,36 +206,38 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                         float wi = _invMass[i];
                         if (wi <= 0f) continue;
                         int a = _tetherAnchorIndex[i];
-                        Vector3 target; float wj; float restLen; Vector3 vrel;
+                        Vector3 target; float wj; Vector3 vj;
+                        float restLen;
                         if (a >= 0)
                         {
                             target = positions[a];
                             wj = _invMass[a];
+                            vj = velocities[a];
                             restLen = _tetherAnchorRestLength[i];
-                            vrel = velocities[i] - velocities[a];
                         }
                         else
                         {
                             target = _rest[i];
                             wj = 0f;
+                            vj = Vector3.Zero;
                             restLen = 0f;
-                            vrel = velocities[i];
                         }
-                        var d = positions[i] - target;
+                        var d = target - positions[i];
                         var lenSq = d.LengthSquared();
                         if (lenSq <= 1e-18f) continue;
                         var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
                         var n = d * invLen;
                         float C = (1f / invLen) - restLen;
-                        float rel = Vector3.Dot(vrel, n);
+                        float rel = Vector3.Dot(vj - velocities[i], n);
                         float bTerm = -betaTether * C / dt;
                         float w = wi + wj;
                         if (w <= 0f) continue;
                         float lambda = -(rel + bTerm) / w;
+                        lambda = Math.Clamp(lambda, -10f, 10f);
                         var dv = lambda * n;
-                        velocities[i] -= wi * dv;
+                        velocities[i] += wi * dv;
                         if (wj > 0f)
-                            velocities[a] += wj * dv;
+                            velocities[a] -= wj * dv;
                     }
                 }
             }
@@ -397,7 +407,7 @@ public sealed class VelocityImpulseSolver : IClothSimulator
     private static float MapStiffnessToBeta(float s, float dt, int iterations)
     {
         float baseBeta = 0.05f + 0.45f * s;
-        float iterScale = 1f / MathF.Max(1, iterations);
+        float iterScale = MathF.Min(1f, iterations / 4f);
         return MathF.Min(0.6f, baseBeta * iterScale);
     }
 
