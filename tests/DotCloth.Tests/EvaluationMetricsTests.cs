@@ -55,8 +55,8 @@ public class EvaluationMetricsTests
         float avgStretch = AverageStretch(positions, edges, restLen);
         ComputeAngles(positions, triangles, curAngles);
         float angleVar = AngleVariance(curAngles, restAngles);
-        Assert.InRange(avgStretch, 0.95f, 1.05f);
-        Assert.True(angleVar < 0.01f);
+        Assert.InRange(avgStretch, 0.97f, 1.03f);
+        Assert.True(angleVar < 0.005f);
     }
 
     private static (Vector3[] pos, int[] tris) MakeGrid(int n, float spacing)
