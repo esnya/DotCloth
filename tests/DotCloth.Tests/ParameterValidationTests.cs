@@ -1,5 +1,4 @@
 using System.Numerics;
-using DotCloth.Simulation.Core;
 using DotCloth.Simulation.Parameters;
 using Xunit;
 
@@ -10,7 +9,7 @@ public class ParameterValidationTests
     [Fact]
     public void Initialize_Throws_On_BadTriangleIndex()
     {
-        var s = new VelocityImpulseSolver();
+        var s = new Solver();
         var p = new ClothParameters();
         var positions = new[] { new Vector3(0,0,0) };
         var tris = new[] { 0, 1, 2 };
@@ -20,7 +19,7 @@ public class ParameterValidationTests
     [Fact]
     public void UpdateParameters_ClampsRanges()
     {
-        var s = new VelocityImpulseSolver();
+        var s = new Solver();
         var positions = new[] { new Vector3(0,0,0) };
         s.Initialize(positions, Array.Empty<int>(), new ClothParameters());
         var p = new ClothParameters

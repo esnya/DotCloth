@@ -1,5 +1,4 @@
 using System.Numerics;
-using DotCloth.Simulation.Core;
 using DotCloth.Simulation.Parameters;
 using Xunit;
 
@@ -25,8 +24,8 @@ public class DeterminismLongRunTests
             Substeps = 2,
             RandomAcceleration = 0f,
         };
-        var s1 = new VelocityImpulseSolver();
-        var s2 = new VelocityImpulseSolver();
+        var s1 = new Solver();
+        var s2 = new Solver();
 
         var aPos = (Vector3[])positions.Clone();
         var bPos = (Vector3[])positions.Clone();

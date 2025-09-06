@@ -1,5 +1,4 @@
 using System.Numerics;
-using DotCloth.Simulation.Core;
 using DotCloth.Simulation.Parameters;
 using Xunit;
 
@@ -16,8 +15,8 @@ public class RandomAccelerationTests
         var velocitiesB = new[] { Vector3.Zero };
         var tris = Array.Empty<int>();
         var p = new ClothParameters { UseGravity = false, RandomAcceleration = 5f, RandomSeed = 42 };
-        var s1 = new VelocityImpulseSolver();
-        var s2 = new VelocityImpulseSolver();
+        var s1 = new Solver();
+        var s2 = new Solver();
         s1.Initialize(positionsA, tris, p);
         s2.Initialize(positionsB, tris, p);
 

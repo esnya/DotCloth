@@ -1,12 +1,11 @@
 using System.Numerics;
-using DotCloth.Simulation.Core;
 using DotCloth.Simulation.Collision;
 using DotCloth.Simulation.Parameters;
 using Xunit;
 
 namespace DotCloth.Tests;
 
-public class VelocityImpulseSolverConstraintTests
+public class PbdSolverConstraintTests
 {
     private static (Vector3[] positions, int[] triangles) MakeQuad()
     {
@@ -30,7 +29,7 @@ public class VelocityImpulseSolverConstraintTests
     {
         var (pos0, tris) = MakeQuad();
         var p = new ClothParameters { UseGravity = false, StretchStiffness = 1.0f, Iterations = 20, Substeps = 1 };
-        var solver = new VelocityImpulseSolver();
+        var solver = new Solver();
         var v = new Vector3[pos0.Length];
         solver.Initialize(pos0, tris, p);
 
@@ -61,7 +60,7 @@ public class VelocityImpulseSolverConstraintTests
         float RunWithIterations(int iters)
         {
             var p = new ClothParameters { UseGravity = false, StretchStiffness = 1.0f, Iterations = iters, Substeps = 1 };
-            var solver = new VelocityImpulseSolver();
+            var solver = new Solver();
             var positions = (Vector3[])pos0.Clone();
             var velocities = (Vector3[])v0.Clone();
             velocities[1] = new Vector3(5, 0, 0);
@@ -86,14 +85,14 @@ public class VelocityImpulseSolverConstraintTests
 
         // Unconstrained: use solver with zero iterations and zero stiffness
         var p0 = new ClothParameters { UseGravity = false, StretchStiffness = 0f, BendStiffness = 0f, Iterations = 1 };
-        var s0 = new VelocityImpulseSolver();
+        var s0 = new Solver();
         s0.Initialize(positions, tris, p0);
         var unconstrainedPos1 = (Vector3[])positions.Clone();
         var unconstrainedVel1 = (Vector3[])velocities.Clone();
         s0.Step(dt, unconstrainedPos1, unconstrainedVel1);
 
         var p1 = new ClothParameters { UseGravity = false, StretchStiffness = 0f, BendStiffness = 0f, Iterations = 20 };
-        var s1 = new VelocityImpulseSolver();
+        var s1 = new Solver();
         var pos1 = (Vector3[])positions.Clone();
         var vel1 = (Vector3[])velocities.Clone();
         s1.Initialize(pos1, tris, p1);
@@ -113,7 +112,7 @@ public class VelocityImpulseSolverConstraintTests
             var velocities = new Vector3[pos0.Length];
             velocities[1] = new Vector3(5, 0, 0);
             var p = new ClothParameters { UseGravity = false, StretchStiffness = stiffness, Iterations = 20 };
-            var s = new VelocityImpulseSolver();
+            var s = new Solver();
             s.Initialize(positions, tris, p);
             s.Step(dt, positions, velocities);
             return MathF.Abs(Vector3.Distance(positions[0], positions[1]) - Vector3.Distance(pos0[0], pos0[1]));
@@ -133,8 +132,8 @@ public class VelocityImpulseSolverConstraintTests
         var aVel = new Vector3[pos0.Length];
         var bVel = new Vector3[pos0.Length];
 
-        var s1 = new VelocityImpulseSolver();
-        var s2 = new VelocityImpulseSolver();
+        var s1 = new Solver();
+        var s2 = new Solver();
         s1.Initialize(aPos, tris, p);
         s2.Initialize(bPos, tris, p);
 
@@ -163,7 +162,7 @@ public class VelocityImpulseSolverConstraintTests
         var velocities = new[] { Vector3.Zero };
         var tris = Array.Empty<int>();
         var p = new ClothParameters { UseGravity = false };
-        var solver = new VelocityImpulseSolver();
+        var solver = new Solver();
         solver.Initialize(positions, tris, p);
         solver.SetColliders(new [] { new PlaneCollider(new Vector3(0,1,0), 0f) });
 

@@ -397,7 +397,7 @@ public sealed class VelocityImpulseSolver : IClothSimulator
     private static float MapStiffnessToBeta(float s, float dt, int iterations)
     {
         float baseBeta = 0.05f + 0.45f * s;
-        float iterScale = MathF.Min(1f, iterations / 4f);
+        float iterScale = 1f / MathF.Max(1, iterations);
         return MathF.Min(0.6f, baseBeta * iterScale);
     }
 

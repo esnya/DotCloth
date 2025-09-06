@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using DotCloth.Simulation.Core;
 using DotCloth.Simulation.Collision;
 using DotCloth.Simulation.Parameters;
 using Xunit;
@@ -89,7 +88,7 @@ public class SimulationStabilityTests
             Substeps = 1,
             Iterations = 8,
         };
-        var solver = new VelocityImpulseSolver();
+        var solver = new Solver();
         solver.Initialize(pos, tri, parms);
         var pins = new int[n];
         for (int i = 0; i < n; i++) pins[i] = (n - 1) * n + i;
@@ -118,7 +117,7 @@ public class SimulationStabilityTests
             BendStiffness = 0.5f,
             Iterations = 10,
         };
-        var solver = new VelocityImpulseSolver();
+        var solver = new Solver();
         solver.Initialize(pos, tri, parms);
         solver.PinVertices(Enumerable.Range(0, n).ToArray());
         solver.SetColliders(new ICollider[] { new PlaneCollider(new Vector3(0, 1, 0), -0.8f) });

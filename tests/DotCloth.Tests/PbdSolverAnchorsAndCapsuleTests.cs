@@ -1,12 +1,11 @@
 using System.Numerics;
-using DotCloth.Simulation.Core;
 using DotCloth.Simulation.Parameters;
 using DotCloth.Simulation.Collision;
 using Xunit;
 
 namespace DotCloth.Tests;
 
-public class VelocityImpulseSolverAnchorsAndCapsuleTests
+public class PbdSolverAnchorsAndCapsuleTests
 {
     [Fact]
     public void TetherAnchors_PullsTowardAnchorWithScale()
@@ -19,7 +18,7 @@ public class VelocityImpulseSolverAnchorsAndCapsuleTests
         };
         var tris = new[] { 0,1,2 }; // degenerate single tri okay for building
         var p = new ClothParameters { UseGravity = false, TetherStiffness = 1.0f, TetherLengthScale = 0.5f, Iterations = 20 };
-        var solver = new VelocityImpulseSolver();
+        var solver = new Solver();
         var v = new Vector3[positions.Length];
         solver.Initialize(positions, tris, p);
         // Pin vertex 0, set as anchor
@@ -46,7 +45,7 @@ public class VelocityImpulseSolverAnchorsAndCapsuleTests
         var velocities = new[] { Vector3.Zero };
         var tris = Array.Empty<int>();
         var p = new ClothParameters { UseGravity = false };
-        var solver = new VelocityImpulseSolver();
+        var solver = new Solver();
         solver.Initialize(positions, tris, p);
         solver.SetColliders(new [] { new CapsuleCollider(new Vector3(0,0,0), new Vector3(1,0,0), 0.2f) });
 
@@ -69,7 +68,7 @@ public class VelocityImpulseSolverAnchorsAndCapsuleTests
     {
         var positions = new[] { new Vector3(0,0,0) };
         var tris = new[] { 0, 1, 2 }; // invalid
-        var solver = new VelocityImpulseSolver();
+        var solver = new Solver();
         var p = new ClothParameters();
         Assert.Throws<ArgumentOutOfRangeException>(() => solver.Initialize(positions, tris, p));
     }

@@ -7,14 +7,15 @@ using DotCloth.Simulation.Parameters;
 namespace DotCloth.Simulation.Core;
 
 /// <summary>
-/// Compatibility wrapper for the default velocity solver.
-/// </summary>
-/// <summary>
-/// Backward-compatible wrapper around <see cref="VelocityImpulseSolver"/>.
+/// Backward-compatible solver that selects implementation at compile time.
 /// </summary>
 public sealed class PbdSolver : IClothSimulator
 {
+#if DOTCLOTH_EXPERIMENTAL_XPBD
+    private readonly XpbdSolver _impl = new();
+#else
     private readonly VelocityImpulseSolver _impl = new();
+#endif
 
     /// <inheritdoc />
     public void SetColliders(IEnumerable<ICollider> colliders) => _impl.SetColliders(colliders);

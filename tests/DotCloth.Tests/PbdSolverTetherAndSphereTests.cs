@@ -1,12 +1,11 @@
 using System.Numerics;
-using DotCloth.Simulation.Core;
 using DotCloth.Simulation.Parameters;
 using DotCloth.Simulation.Collision;
 using Xunit;
 
 namespace DotCloth.Tests;
 
-public class VelocityImpulseSolverTetherAndSphereTests
+public class PbdSolverTetherAndSphereTests
 {
     [Fact]
     public void Tether_ReducesDistanceToRest()
@@ -15,7 +14,7 @@ public class VelocityImpulseSolverTetherAndSphereTests
         var velocities = new[] { Vector3.Zero };
         var tris = Array.Empty<int>();
         var p = new ClothParameters { UseGravity = false, TetherStiffness = 1.0f, Iterations = 10 };
-        var solver = new VelocityImpulseSolver();
+        var solver = new Solver();
         solver.Initialize(positions, tris, p);
 
         var rest = positions[0];
@@ -36,7 +35,7 @@ public class VelocityImpulseSolverTetherAndSphereTests
         var velocities = new[] { Vector3.Zero };
         var tris = Array.Empty<int>();
         var p = new ClothParameters { UseGravity = false };
-        var solver = new VelocityImpulseSolver();
+        var solver = new Solver();
         solver.Initialize(positions, tris, p);
         solver.SetColliders(new [] { new SphereCollider(Vector3.Zero, 0.5f) });
 
