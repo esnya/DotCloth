@@ -1,5 +1,4 @@
 using System.Numerics;
-using DotCloth.Simulation.Core;
 using DotCloth.Simulation.Parameters;
 using Xunit;
 
@@ -28,7 +27,7 @@ public class PbdSolverPinAndBendTests
     {
         var (pos, tris) = MakeTwoTris();
         var p = new ClothParameters { UseGravity = true };
-        var solver = new PbdSolver();
+        var solver = new Solver();
         var v = new Vector3[pos.Length];
         solver.Initialize(pos, tris, p);
 
@@ -61,7 +60,7 @@ public class PbdSolverPinAndBendTests
         };
         var tris = new[] { 0,1,2, 2,1,3 }; // shared edge (1,2) with opposite vertices 0 and 3
         var p = new ClothParameters { UseGravity = false, BendStiffness = 1.0f, Iterations = 20 };
-        var solver = new PbdSolver();
+        var solver = new Solver();
         var v = new Vector3[positions.Length];
         solver.Initialize(positions, tris, p);
 

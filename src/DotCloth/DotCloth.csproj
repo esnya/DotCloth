@@ -5,8 +5,9 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>DotCloth</PackageId>
     <Authors>DotCloth Team</Authors>
-    <Description>High-performance, UnityCloth-concept compatible XPBD cloth simulation library for .NET 9.0. Deterministic, thread-safe API with tests and CI.</Description>
-    <PackageTags>cloth;PBD;XPBD;UnityCloth;simulation;physics</PackageTags>
+    <Description>High-performance, UnityCloth-concept compatible cloth simulation library for .NET 9.0 using a velocity-level solver.</Description>
+    <PackageTags>cloth;velocity;XPBD;UnityCloth;simulation;physics</PackageTags>
+    <DefineConstants>$(DefineConstants);DOTCLOTH_ENABLE_VELOCITY_CLAMP</DefineConstants>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>

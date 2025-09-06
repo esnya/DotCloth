@@ -1,5 +1,4 @@
 using System.Numerics;
-using DotCloth.Simulation.Core;
 using DotCloth.Simulation.Parameters;
 using Xunit;
 
@@ -10,7 +9,7 @@ public class PbdSolverBasicsTests
     [Fact]
     public void Step_WithGravity_AccumulatesDownwardVelocity()
     {
-        var solver = new PbdSolver();
+        var solver = new Solver();
         var p = new ClothParameters { UseGravity = true, GravityScale = 1.0f, Damping = 0.0f };
         var positions = new Vector3[] { new(0, 0, 0) };
         var velocities = new Vector3[] { Vector3.Zero };
@@ -26,7 +25,7 @@ public class PbdSolverBasicsTests
     [Fact]
     public void Damping_ReducesVelocityMagnitude()
     {
-        var solver = new PbdSolver();
+        var solver = new Solver();
         var p = new ClothParameters { UseGravity = false, Damping = 0.5f };
         var positions = new Vector3[] { new(0, 0, 0) };
         var velocities = new Vector3[] { new(1, 0, 0) };

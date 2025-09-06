@@ -3,7 +3,7 @@ Minimal Usage
 
 Initialize
 - Build positions/triangles, parameters (e.g., stiffness/iterations), and velocities (zero to start).
-- Create `PbdSolver`, call `Initialize(positions, triangles, parameters)`.
+- Create `VelocityImpulseSolver`, call `Initialize(positions, triangles, parameters)`.
 
 Optional setup
 - Pin: `PinVertices(indices)` or `SetInverseMasses`.

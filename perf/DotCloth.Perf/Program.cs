@@ -30,7 +30,7 @@ static class Perf
     {
         var (pos0, tris) = MakeGrid(n, 0.05f);
         var velocities = new Vector3[pos0.Length];
-        var solver = new PbdSolver();
+        var solver = new VelocityImpulseSolver();
         var p = new ClothParameters
         {
             UseGravity = true,
@@ -61,7 +61,7 @@ static class Perf
 
     static void RunMultiCase(int instances, int n, int iterations, int substeps, int frames, float dt)
     {
-        var solvers = new PbdSolver[instances];
+        var solvers = new VelocityImpulseSolver[instances];
         var positions = new Vector3[instances][];
         var velocities = new Vector3[instances][];
         var (templatePos, tris) = MakeGrid(n, 0.05f);
@@ -69,7 +69,7 @@ static class Perf
         {
             positions[idx] = (Vector3[])templatePos.Clone();
             velocities[idx] = new Vector3[templatePos.Length];
-            var solver = new PbdSolver();
+            var solver = new VelocityImpulseSolver();
             var p = new ClothParameters
             {
                 UseGravity = true,

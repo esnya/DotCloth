@@ -5,7 +5,7 @@ Purpose
 - Provide a cross‑platform, editor‑friendly sample showcasing DotCloth integration in Godot 4 .NET.
 
 Scope & Boundaries
-- In: minimal Godot project that steps `PbdSolver` and updates a dynamic mesh (vertices + normals), pinning a row.
+- In: minimal Godot project that steps `PbdSolver` (velocity solver wrapper) and updates a dynamic mesh (vertices + normals), pinning a row.
 - Out: editor tooling, UI, picking/drag, platform‑specific code, CI build of Godot project.
 
 Public Surface

@@ -3,7 +3,7 @@
 ## Note
 - This repository’s code and documentation annotations are 100% produced with Codex (OpenAI) assistance and maintained under human review.
 
-High‑performance, UnityCloth‑compatible eXtended PBD (XPBD) cloth simulation library targeting .NET 9.0. DotCloth aims to mirror UnityCloth’s parameter model while adopting recent PBD/XPBD research for performance, robustness, and ease of integration.
+High‑performance, UnityCloth‑compatible cloth simulation library targeting .NET 9.0. DotCloth defaults to a velocity‑level sequential impulse solver and retains an XPBD solver behind the `DOTCLOTH_EXPERIMENTAL_XPBD` flag.
 
 ## Screenshot
 - ![MonoGame sample screenshot](docs/images/sample-monogame.png)
@@ -26,7 +26,7 @@ var positions = new[] { new Vector3(0,0,0), new Vector3(1,0,0), new Vector3(0,-1
 var triangles = new[] { 0,1,2, 2,1,3 };
 var velocities = new Vector3[positions.Length];
 var p = new ClothParameters { UseGravity = true, StretchStiffness = 0.9f, BendStiffness = 0.5f, Iterations = 10 };
-var solver = new PbdSolver();
+var solver = new VelocityImpulseSolver();
 solver.Initialize(positions, triangles, p);
 solver.PinVertices(0); // anchor one corner
 solver.SetColliders(new [] { new PlaneCollider(new Vector3(0,1,0), 0f) });
