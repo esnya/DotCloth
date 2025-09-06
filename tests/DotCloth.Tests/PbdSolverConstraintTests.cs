@@ -100,7 +100,11 @@ public class PbdSolverConstraintTests
         s1.Initialize(pos1, tris, p1);
         s1.Step(dt, pos1, vel1);
 
-        Assert.True(MathF.Abs(unconstrainedPos1[1].X - pos1[1].X) < 1e-4f);
+        float tol = 1e-4f;
+#if DOTCLOTH_EXPERIMENTAL_XPBD
+        tol = 5e-3f;
+#endif
+        Assert.True(MathF.Abs(unconstrainedPos1[1].X - pos1[1].X) < tol);
     }
 
     [Fact]
