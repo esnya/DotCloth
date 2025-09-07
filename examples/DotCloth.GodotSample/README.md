@@ -4,7 +4,7 @@ DotCloth Godot Sample
 Overview
 - Minimal Godot 4 C# project that integrates DotCloth and renders a dynamic cloth mesh.
 - By default it uses the velocity‑level solver. The XPBD variant is experimental and requires compiling the library with `DOTCLOTH_EXPERIMENTAL_XPBD` and explicitly using `XpbdSolver`.
-- Pure code-first: the scene (`main.tscn`) attaches `Main.cs` which creates camera, ambient-lit environment, light, mesh, ground, and steps the solver.
+- Scene-driven: `main.tscn` defines camera, light, ground, mesh, and UI nodes while `Main.cs` drives the solver and updates them.
 - Cross‑platform: runs on Windows/macOS/Linux with Godot 4 .NET installed.
 
 Requirements

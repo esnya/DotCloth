@@ -66,7 +66,7 @@ public partial class Main : Node3D
         SetupScene();
         SetupScenario(_scenario);
         BuildMesh();
-        BuildUI();
+        SetupUI();
     }
 
     public override void _PhysicsProcess(double delta)
@@ -117,8 +117,8 @@ public partial class Main : Node3D
         if (_perfAccum >= 0.15 && _perfLabel != null)
         {
             _perfAccum = 0.0;
-            // Smooth FPS estimate
-            double instFps = delta > 1e-9 ? 1.0 / delta : 0.0;
+            // Smooth FPS estimate based on actual frame rate
+            double instFps = Engine.GetFramesPerSecond();
             _fpsSmooth = _fpsSmooth <= 0 ? instFps : (_fpsSmooth * 0.9 + instFps * 0.1);
             var totalMs = simMs + meshMs;
             _perfLabel.Text = $"Perf: Total {totalMs:F2} ms | Sim {simMs:F2} | Mesh {meshMs:F2} | FPS {(float)_fpsSmooth:F1} | Verts {_positions.Length}";
@@ -127,35 +127,14 @@ public partial class Main : Node3D
 
     private void SetupScene()
     {
-        // Camera (orbit)
-        _cam = new Camera3D { Current = true };
-        AddChild(_cam);
-        UpdateCamera();
+        _cam = GetNode<Camera3D>("Camera");
+        _sun = GetNode<DirectionalLight3D>("Sun");
+        _worldEnv = GetNode<WorldEnvironment>("WorldEnvironment");
+        _meshInst = GetNode<MeshInstance3D>("ClothMesh");
+        _ground = GetNode<MeshInstance3D>("Ground");
 
-        // Light (directional)
-        _sun = new DirectionalLight3D
-        {
-            LightColor = new Color(1.0f, 0.98f, 0.95f),
-            LightEnergy = 2.2f,
-        };
-        _sun.RotationDegrees = new Vector3(45, 145, 0);
-        AddChild(_sun);
-
-        // Ambient light via WorldEnvironment while keeping a sky background
-        var env = new Godot.Environment
-        {
-            BackgroundMode = Godot.Environment.BGMode.Sky,
-            AmbientLightSource = Godot.Environment.AmbientSource.Sky,
-            AmbientLightEnergy = 0.35f,
-            AmbientLightSkyContribution = 0.7f,
-        };
-        env.Sky = new Sky { SkyMaterial = new ProceduralSkyMaterial() };
-        _worldEnv = new WorldEnvironment { Environment = env };
-        AddChild(_worldEnv);
-
-        // Mesh holder
         _mesh = new ArrayMesh();
-        _meshInst = new MeshInstance3D { Mesh = _mesh };
+        _meshInst.Mesh = _mesh;
         _meshInst.MaterialOverride = new StandardMaterial3D
         {
             AlbedoColor = new Color(0.85f, 0.9f, 1.0f),
@@ -164,88 +143,71 @@ public partial class Main : Node3D
             Metallic = 0.0f,
             CullMode = BaseMaterial3D.CullModeEnum.Disabled,
         };
-        AddChild(_meshInst);
 
-        // Ground
-        _ground = new MeshInstance3D
+        var env = new Godot.Environment
         {
-            Mesh = new PlaneMesh { Size = new Vector2(8, 8), SubdivideWidth = 1, SubdivideDepth = 1 },
-            Position = new Vector3(0, -0.8f, 0),
-            MaterialOverride = new StandardMaterial3D
-            {
-                AlbedoColor = new Color(0.16f, 0.18f, 0.22f),
-                Roughness = 0.9f,
-                Metallic = 0.0f,
-            }
+            BackgroundMode = Godot.Environment.BGMode.Sky,
+            AmbientLightSource = Godot.Environment.AmbientSource.Sky,
+            AmbientLightEnergy = 0.35f,
+            AmbientLightSkyContribution = 0.7f,
         };
-        AddChild(_ground);
+        env.Sky = new Sky { SkyMaterial = new ProceduralSkyMaterial() };
+        _worldEnv.Environment = env;
+
+        _ground.Mesh = new PlaneMesh { Size = new Vector2(8, 8), SubdivideWidth = 1, SubdivideDepth = 1 };
+        _ground.Position = new Vector3(0, -0.8f, 0);
+        _ground.MaterialOverride = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.16f, 0.18f, 0.22f),
+            Roughness = 0.9f,
+            Metallic = 0.0f,
+        };
+
+        _sun.RotationDegrees = new Vector3(45, 145, 0);
+        UpdateCamera();
     }
 
-    private void BuildUI()
+    private void SetupUI()
     {
-        _ui = new CanvasLayer { Layer = 100 }; // ensure on top
-        AddChild(_ui);
-        var panel = new PanelContainer();
-        panel.Name = "UI";
-        panel.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
-        panel.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
-        var vb = new VBoxContainer();
-        // Title
-        vb.AddChild(new Label { Text = "DotCloth × Godot Sample" });
-        vb.AddChild(new Label { Text = "LMB: Pin | MMB: Unpin | RMB: Orbit | Wheel: Zoom | R: Reset Pins" });
+        _ui = GetNode<CanvasLayer>("UI");
 
-        // Scenario selector
-        var hbScenario = new HBoxContainer();
-        hbScenario.AddChild(new Label { Text = "Scenario" });
-        var scenarios = new OptionButton();
+        var scenarios = GetNode<OptionButton>("UI/Panel/VBox/ScenarioSelector/ScenarioOption");
+        scenarios.Clear();
         scenarios.AddItem("Minimal", 0);
         scenarios.AddItem("Tube", 1);
         scenarios.AddItem("Collision", 2);
         scenarios.AddItem("Large", 3);
         scenarios.Selected = (int)_scenario;
         scenarios.ItemSelected += (long idx) => { SetupScenario((Scenario)idx); BuildScenarioControls(); };
-        hbScenario.AddChild(scenarios);
-        vb.AddChild(hbScenario);
-        // Scenario short description
-        _scenarioDesc = new Label { Text = GetScenarioDescription(_scenario) };
-        vb.AddChild(_scenarioDesc);
 
-        // Global parameters (apply to all scenarios; reset to scenario defaults on load)
-        var hbIter = new HBoxContainer();
-        hbIter.AddChild(new Label { Text = "Iterations" });
-        _sIter = new HSlider { MinValue = 1, MaxValue = 64, Step = 1, Value = _parms.Iterations, CustomMinimumSize = new Vector2(180, 0) };
+        _scenarioDesc = GetNode<Label>("UI/Panel/VBox/ScenarioDesc");
+        _scenarioDesc.Text = GetScenarioDescription(_scenario);
+
+        _sIter = GetNode<HSlider>("UI/Panel/VBox/Iterations/IterationsSlider");
+        _sIter.MinValue = 1;
+        _sIter.MaxValue = 64;
+        _sIter.Step = 1;
+        _sIter.Value = _parms.Iterations;
         _sIter.ValueChanged += (double v) => { if (_updatingUI) return; _parms.Iterations = (int)v; _solver.UpdateParameters(_parms); };
-        hbIter.AddChild(_sIter);
-        vb.AddChild(hbIter);
 
-        var hbStretch = new HBoxContainer();
-        hbStretch.AddChild(new Label { Text = "Stretch" });
-        _sStretch = new HSlider { MinValue = 0, MaxValue = 1, Step = 0.01, Value = _parms.StretchStiffness, CustomMinimumSize = new Vector2(180, 0) };
+        _sStretch = GetNode<HSlider>("UI/Panel/VBox/Stretch/StretchSlider");
+        _sStretch.MinValue = 0;
+        _sStretch.MaxValue = 1;
+        _sStretch.Step = 0.01;
+        _sStretch.Value = _parms.StretchStiffness;
         _sStretch.ValueChanged += (double v) => { if (_updatingUI) return; _parms.StretchStiffness = (float)v; _solver.UpdateParameters(_parms); };
-        hbStretch.AddChild(_sStretch);
-        vb.AddChild(hbStretch);
 
-        var hbBend = new HBoxContainer();
-        hbBend.AddChild(new Label { Text = "Bend" });
-        _sBend = new HSlider { MinValue = 0, MaxValue = 1, Step = 0.01, Value = _parms.BendStiffness, CustomMinimumSize = new Vector2(180, 0) };
+        _sBend = GetNode<HSlider>("UI/Panel/VBox/Bend/BendSlider");
+        _sBend.MinValue = 0;
+        _sBend.MaxValue = 1;
+        _sBend.Step = 0.01;
+        _sBend.Value = _parms.BendStiffness;
         _sBend.ValueChanged += (double v) => { if (_updatingUI) return; _parms.BendStiffness = (float)v; _solver.UpdateParameters(_parms); };
-        hbBend.AddChild(_sBend);
-        vb.AddChild(hbBend);
 
-        // Scenario-specific controls container
-        _scenarioControls = new VBoxContainer();
-        vb.AddChild(_scenarioControls);
+        _scenarioControls = GetNode<VBoxContainer>("UI/Panel/VBox/ScenarioControls");
+        _perfLabel = GetNode<Label>("UI/Panel/VBox/PerfLabel");
+
         BuildScenarioControls();
-
-
-        panel.AddChild(vb);
-        _ui.AddChild(panel);
-        panel.Position = new Vector2(10, 10);
-        // Perf label (updated periodically to minimize overhead)
-        _perfLabel = new Label { Text = "Perf: --" };
-        vb.AddChild(_perfLabel);
-
-        panel.Size = new Vector2(460, 240);
     }
 
     // Collider scenario controls
