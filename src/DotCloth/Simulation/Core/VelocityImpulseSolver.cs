@@ -1,6 +1,8 @@
 using System.Numerics;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 using DotCloth.Simulation.Parameters;
 
 namespace DotCloth.Simulation.Core;
@@ -128,342 +130,338 @@ public sealed class VelocityImpulseSolver : IClothSimulator
     }
 
     /// <inheritdoc />
-    public void Step(float deltaTime, Span<Vector3> positions, Span<Vector3> velocities)
+    public unsafe void Step(float deltaTime, Span<Vector3> positions, Span<Vector3> velocities)
     {
         if (positions.Length != _vertexCount) throw new ArgumentException("positions length mismatch", nameof(positions));
         if (velocities.Length != _vertexCount) throw new ArgumentException("velocities length mismatch", nameof(velocities));
         if (deltaTime <= 0) throw new ArgumentOutOfRangeException(nameof(deltaTime));
-
-        int substeps = Math.Max(1, _cfg.Substeps);
-        int iterations = Math.Max(1, _cfg.Iterations);
-        float dt = deltaTime / substeps;
-
-        var gravity = _cfg.UseGravity ? new Vector3(0, -9.80665f * _cfg.GravityScale, 0) : Vector3.Zero;
-        var accelBase = gravity + _cfg.ExternalAcceleration;
-        var useRandom = _cfg.RandomAcceleration > 0f;
-        var rng = useRandom ? new Rng((uint)_cfg.RandomSeed) : default;
-
-        float damping = Math.Clamp(_cfg.Damping, 0f, 0.999f);
-        float drag = Math.Max(0f, _cfg.AirDrag);
-
-        // Map 0..1 stiffness to Baumgarte beta coefficients
-        float betaStretch = MapStiffnessToBeta(_cfg.StretchStiffness, dt, iterations);
-        float edgeScale = Math.Clamp(ReferenceEdgeLength / MathF.Max(_avgEdgeLength, 1e-6f), 0.5f, 2f);
-        float betaBend = MapStiffnessToBeta(_cfg.BendStiffness, dt, iterations) * BendBetaScale * edgeScale;
-        float betaTether = MathF.Min(0.75f, MapStiffnessToBeta(_cfg.TetherStiffness, dt, iterations) * 1.35f);
-
-        float stretchS = _cfg.StretchStiffness <= 0f ? 0f : MathF.Max(_cfg.StretchStiffness, 0.05f);
-        float bendS = _cfg.BendStiffness <= 0f ? 0f : MathF.Max(_cfg.BendStiffness, 0.1f);
-        float tetherS = _cfg.TetherStiffness <= 0f ? 0f : MathF.Max(_cfg.TetherStiffness, 0.05f);
-
-        bool hasStretch = _cfg.StretchStiffness > 0f && _edges.Length > 0;
-        bool hasBend = _cfg.BendStiffness > 0f && _bends.Length > 0;
-        bool hasTether = _cfg.TetherStiffness > 0f && _tetherAnchorIndex.Length > 0;
-
-        float cfmStretch = hasStretch ? BaseCfmStretch / stretchS : 0f;
-        float cfmBend = hasBend ? BaseCfmBend / bendS / edgeScale : 0f;
-        float cfmTether = hasTether ? BaseCfmTether / tetherS : 0f;
-
-        float lambdaClampStretch = hasStretch ? BaseLambdaClampStretch * stretchS : 0f;
-        float lambdaClampCompress = hasStretch ? BaseLambdaClampCompress * stretchS : 0f;
-        float lambdaClampBend = hasBend ? BaseLambdaClampBend * bendS : 0f;
-        float lambdaClampTether = hasTether ? BaseLambdaClampTether * tetherS : 0f;
-
-        // Stabilizers: small CFM (softness), under-relaxation, per-iteration impulse clamp
-
-        for (int s = 0; s < substeps; s++)
+        fixed (Vector3* pPositions = positions)
+        fixed (Vector3* pVelocities = velocities)
         {
-            // Save previous positions for collision sweep and velocity update
-            for (int i = 0; i < _vertexCount; i++) _prev[i] = positions[i];
+            var positionsArr = pPositions;
+            var velocitiesArr = pVelocities;
+            int substeps = Math.Max(1, _cfg.Substeps);
+            int iterations = Math.Max(1, _cfg.Iterations);
+            float dt = deltaTime / substeps;
 
-            // 1) External forces -> velocity (semi-implicit)
-            for (int i = 0; i < _vertexCount; i++)
-            {
-                if (_invMass[i] == 0f)
-                {
-                    velocities[i] = Vector3.Zero;
-                    continue;
-                }
-                var v = velocities[i];
-                var a = accelBase;
-                if (useRandom)
-                {
-                    var dir = rng.NextUnitVector();
-                    a += dir * _cfg.RandomAcceleration;
-                }
-                v += a * dt;
-                v -= v * drag * dt; // simple drag
-                velocities[i] = v;
-            }
+            var gravity = _cfg.UseGravity ? new Vector3(0, -9.80665f * _cfg.GravityScale, 0) : Vector3.Zero;
+            var accelBase = gravity + _cfg.ExternalAcceleration;
+            var useRandom = _cfg.RandomAcceleration > 0f;
+            var rng = useRandom ? new Rng((uint)_cfg.RandomSeed) : default;
 
-            // 2) Constraint iterations (sequential impulses on velocity)
-            for (int it = 0; it < iterations; it++)
+            float damping = Math.Clamp(_cfg.Damping, 0f, 0.999f);
+            float drag = Math.Max(0f, _cfg.AirDrag);
+
+            // Map 0..1 stiffness to Baumgarte beta coefficients
+            float betaStretch = MapStiffnessToBeta(_cfg.StretchStiffness, dt, iterations);
+            float edgeScale = Math.Clamp(ReferenceEdgeLength / MathF.Max(_avgEdgeLength, 1e-6f), 0.5f, 2f);
+            float betaBend = MapStiffnessToBeta(_cfg.BendStiffness, dt, iterations) * BendBetaScale * edgeScale;
+            float betaTether = MathF.Min(0.75f, MapStiffnessToBeta(_cfg.TetherStiffness, dt, iterations) * 1.35f);
+
+            float stretchS = _cfg.StretchStiffness <= 0f ? 0f : MathF.Max(_cfg.StretchStiffness, 0.05f);
+            float bendS = _cfg.BendStiffness <= 0f ? 0f : MathF.Max(_cfg.BendStiffness, 0.1f);
+            float tetherS = _cfg.TetherStiffness <= 0f ? 0f : MathF.Max(_cfg.TetherStiffness, 0.05f);
+
+            bool hasStretch = _cfg.StretchStiffness > 0f && _edges.Length > 0;
+            bool hasBend = _cfg.BendStiffness > 0f && _bends.Length > 0;
+            bool hasTether = _cfg.TetherStiffness > 0f && _tetherAnchorIndex.Length > 0;
+
+            float cfmStretch = hasStretch ? BaseCfmStretch / stretchS : 0f;
+            float cfmBend = hasBend ? BaseCfmBend / bendS / edgeScale : 0f;
+            float cfmTether = hasTether ? BaseCfmTether / tetherS : 0f;
+
+            float lambdaClampStretch = hasStretch ? BaseLambdaClampStretch * stretchS : 0f;
+            float lambdaClampCompress = hasStretch ? BaseLambdaClampCompress * stretchS : 0f;
+            float lambdaClampBend = hasBend ? BaseLambdaClampBend * bendS : 0f;
+            float lambdaClampTether = hasTether ? BaseLambdaClampTether * tetherS : 0f;
+
+            // Stabilizers: small CFM (softness), under-relaxation, per-iteration impulse clamp
+
+            for (int s = 0; s < substeps; s++)
             {
-                // Tether/Pin — solve first to let anchors dominate
-                if (hasTether)
+                positions.CopyTo(_prev);
+
+                // 1) External forces -> velocity (semi-implicit)
+                for (int i = 0; i < _vertexCount; i++)
                 {
-                    for (int i = 0; i < _vertexCount; i++)
+                    if (_invMass[i] == 0f)
                     {
-                        float wi = _invMass[i];
-                        if (wi <= 0f) continue;
-                        Vector3 target;
-                        float targetLen;
-                        int a = _tetherAnchorIndex[i];
-                        if (a >= 0)
+                        velocitiesArr[i] = Vector3.Zero;
+                        continue;
+                    }
+                    var v = velocitiesArr[i];
+                    var a = accelBase;
+                    if (useRandom)
+                    {
+                        var dir = rng.NextUnitVector();
+                        a += dir * _cfg.RandomAcceleration;
+                    }
+                    v += a * dt;
+                    v -= v * drag * dt; // simple drag
+                    velocitiesArr[i] = v;
+                }
+
+                // 2) Constraint iterations (sequential impulses on velocity)
+                for (int it = 0; it < iterations; it++)
+                {
+                    // Tether/Pin — solve first to let anchors dominate
+                    if (hasTether)
+                    {
+                        Parallel.For(0, _vertexCount, i =>
                         {
-                            target = positions[a];
-                            targetLen = _tetherAnchorRestLength[i];
-                        }
-                        else
-                        {
-                            target = _rest[i];
-                            targetLen = 0f;
-                        }
-                        var xi = positions[i];
-                        var d = xi - target;
-                        var lenSq = d.LengthSquared();
-                        if (lenSq <= 1e-18f) continue;
-                        var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
-                        var len = 1f / invLen;
-                        var n = (target - xi) * invLen; // toward target
-                        float C = len - targetLen;
-                        if (C <= 0f) continue; // inside target; do nothing
-                        float rel = Vector3.Dot(velocities[i], n); // anchor has zero velocity in constraint frame
-                        float bterm = +betaTether * C / dt;
-                        float w = wi;
-                        float denom = w + cfmTether;
-                        float lambda = -(rel + bterm) / denom;
-                        lambda = MathF.Max(-lambdaClampTether, MathF.Min(lambdaClampTether, lambda));
-                        var dv = (lambda * OmegaTether) * n;
-                        // Apply impulse to move toward target (sign adjusted via bterm)
-                        velocities[i] -= wi * dv;
-                        // Shock-like clamp: ensure sufficient inward velocity toward target when violating
-                        if (C > 0f)
-                        {
-                            float rel2 = Vector3.Dot(velocities[i], n); // inward component (along n)
-                            float targetRel = C / dt; // require at least this inward speed
-                            if (rel2 < targetRel)
+                            float wi = _invMass[i];
+                            if (wi <= 0f) return;
+                            Vector3 target;
+                            float targetLen;
+                            int a = _tetherAnchorIndex[i];
+                            if (a >= 0)
                             {
-                                float corr = (targetRel - rel2);
-                                velocities[i] += corr * n; // increase inward component
+                                target = positionsArr[a];
+                                targetLen = _tetherAnchorRestLength[i];
                             }
+                            else
+                            {
+                                target = _rest[i];
+                                targetLen = 0f;
+                            }
+                            var xi = positionsArr[i];
+                            var d = xi - target;
+                            var lenSq = d.LengthSquared();
+                            if (lenSq <= 1e-18f) return;
+                            var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
+                            var len = 1f / invLen;
+                            var n = (target - xi) * invLen;
+                            float C = len - targetLen;
+                            if (C <= 0f) return;
+                            float rel = Vector3.Dot(velocitiesArr[i], n);
+                            float bterm = +betaTether * C / dt;
+                            float w = wi;
+                            float denom = w + cfmTether;
+                            float lambda = -(rel + bterm) / denom;
+                            lambda = MathF.Max(-lambdaClampTether, MathF.Min(lambdaClampTether, lambda));
+                            var dv = (lambda * OmegaTether) * n;
+                            velocitiesArr[i] -= wi * dv;
+                            if (C > 0f)
+                            {
+                                float rel2 = Vector3.Dot(velocitiesArr[i], n);
+                                float targetRel = C / dt;
+                                if (rel2 < targetRel)
+                                {
+                                    float corr = targetRel - rel2;
+                                    velocitiesArr[i] += corr * n;
+                                }
+                            }
+                        });
+                    }
+
+                    // Stretch: edges
+                    if (hasStretch)
+                    {
+                        for (int b = 0; b < _edgeBatches.Length; b++)
+                        {
+                            var batch = _edgeBatches[b];
+                            Parallel.For(0, batch.Length, bi =>
+                            {
+                                int e = batch[bi];
+                                ref readonly var edge = ref _edges[e];
+                                int i = edge.I;
+                                int j = edge.J;
+                                var xi = positionsArr[i];
+                                var xj = positionsArr[j];
+                                var d = xj - xi;
+                                var lenSq = d.LengthSquared();
+                                if (lenSq <= 1e-18f) return;
+                                var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
+                                var len = 1f / invLen;
+                                var n = d * invLen;
+                                float C = len - edge.RestLength;
+                                float w = edge.WSum;
+                                if (w <= 0f) return;
+                                var rel = Vector3.Dot(velocitiesArr[j] - velocitiesArr[i], n);
+                                if (C > 0f)
+                                {
+                                    float bterm = -betaStretch * C / dt;
+                                    float denom = w + cfmStretch;
+                                    float lambda = -(rel + bterm) / denom;
+                                    lambda = MathF.Max(-lambdaClampStretch, MathF.Min(lambdaClampStretch, lambda));
+                                    var dv = (lambda * Omega) * n;
+                                    velocitiesArr[i] -= edge.Wi * dv;
+                                    velocitiesArr[j] += edge.Wj * dv;
+                                }
+                                else if (C < 0f)
+                                {
+                                    if (_tetherAnchorIndex[i] == j || _tetherAnchorIndex[j] == i)
+                                        return;
+                                    float betaC = betaStretch * CompressBetaScale;
+                                    float bterm = -betaC * C / dt;
+                                    float denom = w + cfmStretch * CfmCompressScale;
+                                    float lambda = -(rel + bterm) / denom;
+                                    lambda = MathF.Max(-lambdaClampCompress, MathF.Min(lambdaClampCompress, lambda));
+                                    var dv = (lambda * Omega) * n;
+                                    velocitiesArr[i] -= edge.Wi * dv;
+                                    velocitiesArr[j] += edge.Wj * dv;
+                                }
+                            });
+                        }
+                    }
+
+                    // Bend (distance across opposite vertices)
+                    if (hasBend)
+                    {
+                        for (int bb = 0; bb < _bendBatches.Length; bb++)
+                        {
+                            var batch = _bendBatches[bb];
+                            Parallel.For(0, batch.Length, bi =>
+                            {
+                                int biIdx = batch[bi];
+                                ref readonly var bend = ref _bends[biIdx];
+                                int k = bend.K;
+                                int l = bend.L;
+                                var xk = positionsArr[k];
+                                var xl = positionsArr[l];
+                                var d = xl - xk;
+                                var lenSq = d.LengthSquared();
+                                if (lenSq <= 1e-18f) return;
+                                var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
+                                var len = 1f / invLen;
+                                var n = d * invLen;
+                                float C = len - bend.RestDistance;
+                                float w = bend.WSum;
+                                if (w <= 0f) return;
+                                var rel = Vector3.Dot(velocitiesArr[l] - velocitiesArr[k], n);
+                                float bterm = betaBend * C / dt;
+                                float denom = w + cfmBend;
+                                float lambda = -(rel + bterm) / denom;
+                                lambda = MathF.Max(-lambdaClampBend, MathF.Min(lambdaClampBend, lambda));
+                                var dv = (lambda * Omega) * n;
+                                velocitiesArr[k] -= bend.Wk * dv;
+                                velocitiesArr[l] += bend.Wl * dv;
+                            });
                         }
                     }
                 }
 
-                // Stretch: edges
-                if (hasStretch)
+                // 3) Collisions (current colliders may push positions; they also modify velocity)
+                if (_colliders.Count > 0)
                 {
-                    for (int b = 0; b < _edgeBatches.Length; b++)
+                    foreach (var c in _colliders)
                     {
-                        var batch = _edgeBatches[b];
-                        for (int bi = 0; bi < batch.Length; bi++)
+                        c.Resolve(_prev, positions, velocities, dt, _cfg.CollisionThickness, _cfg.Friction);
+                    }
+                }
+
+                // 4) Integrate positions and apply global damping (with tiny floor to ensure monotone non-increase)
+                float dampFactor = MathF.Max(0f, MathF.Min(1f, (1.0f - damping) - MicroDamp));
+                for (int i = 0; i < _vertexCount; i++)
+                {
+                    if (_invMass[i] == 0f)
+                    {
+                        velocitiesArr[i] = Vector3.Zero;
+                        continue;
+                    }
+                    velocitiesArr[i] *= dampFactor;
+                    positionsArr[i] += velocitiesArr[i] * dt;
+                }
+
+                // 5) Post-stabilization (position-level) — small corrective projections
+                const int postStabIters = PostStabIters;
+                // (Removed) Experimental area stabilization constants.
+                for (int ps = 0; ps < postStabIters; ps++)
+                {
+                    // Stretch edges (only when present)
+                    if (hasStretch)
+                    {
+                        for (int e = 0; e < _edges.Length; e++)
                         {
-                            int e = batch[bi];
                             ref readonly var edge = ref _edges[e];
                             int i = edge.I;
                             int j = edge.J;
-                            var xi = positions[i];
-                            var xj = positions[j];
-                            var d = xj - xi;
+                            var d = positionsArr[j] - positionsArr[i];
                             var lenSq = d.LengthSquared();
                             if (lenSq <= 1e-18f) continue;
                             var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
                             var len = 1f / invLen;
+                            float C = len - edge.RestLength;
                             var n = d * invLen;
-                            float C = len - edge.RestLength; // positional deviation
-                            float w = edge.WSum;
-                            if (w <= 0f) continue;
-                            var rel = Vector3.Dot(velocities[j] - velocities[i], n);
+                            float wsum = edge.WSum;
+                            if (wsum <= 0f) continue;
                             if (C > 0f)
                             {
-                                float bterm = -betaStretch * C / dt; // Baumgarte stabilization
-                                float denom = w + cfmStretch;
-                                float lambda = -(rel + bterm) / denom;
-                                // impulse clamp (tension)
-                                lambda = MathF.Max(-lambdaClampStretch, MathF.Min(lambdaClampStretch, lambda));
-                                var dv = (lambda * Omega) * n;
-                                velocities[i] -= edge.Wi * dv;
-                                velocities[j] += edge.Wj * dv;
+                                float corrMag = PosAlphaStretch * C / MathF.Max(1e-8f, wsum);
+                                var corr = corrMag * n;
+                                positionsArr[i] += edge.Wi * corr;
+                                positionsArr[j] -= edge.Wj * corr;
                             }
                             else if (C < 0f)
                             {
-                                // Allow anchor-pair edges to compress freely (tether should win)
-                                if (_tetherAnchorIndex[i] == j || _tetherAnchorIndex[j] == i)
-                                    continue;
-                                float betaC = betaStretch * CompressBetaScale;
-                                float bterm = -betaC * C / dt; // note: C<0 → bterm reduces compression slowly
-                                float denom = w + cfmStretch * CfmCompressScale;
-                                float lambda = -(rel + bterm) / denom;
-                                // tighter clamp for compression
-                                lambda = MathF.Max(-lambdaClampCompress, MathF.Min(lambdaClampCompress, lambda));
-                                var dv = (lambda * Omega) * n;
-                                velocities[i] -= edge.Wi * dv;
-                                velocities[j] += edge.Wj * dv;
+                                float rest = MathF.Max(1e-12f, edge.RestLength);
+                                float ratio = len / rest;
+                                float posAlphaCompress = ratio < 0.90f ? 0.40f : 0.20f;
+                                float corrMag = posAlphaCompress * (-C) / MathF.Max(1e-8f, wsum);
+                                var corr = corrMag * n;
+                                positionsArr[i] -= edge.Wi * corr;
+                                positionsArr[j] += edge.Wj * corr;
                             }
                         }
                     }
-                }
-
-                // Bend (distance across opposite vertices)
-                if (hasBend)
-                {
-                    for (int bb = 0; bb < _bendBatches.Length; bb++)
+                    // Bend pairs (only when present)
+                    if (hasBend)
                     {
-                        var batch = _bendBatches[bb];
-                        for (int bi = 0; bi < batch.Length; bi++)
+                        for (int b = 0; b < _bends.Length; b++)
                         {
-                            int biIdx = batch[bi];
-                            ref readonly var bend = ref _bends[biIdx];
+                            ref readonly var bend = ref _bends[b];
                             int k = bend.K;
                             int l = bend.L;
-                            var xk = positions[k];
-                            var xl = positions[l];
-                            var d = xl - xk;
+                            var d = positionsArr[l] - positionsArr[k];
                             var lenSq = d.LengthSquared();
                             if (lenSq <= 1e-18f) continue;
                             var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
                             var len = 1f / invLen;
-                            var n = d * invLen;
                             float C = len - bend.RestDistance;
-                            float w = bend.WSum;
-                            if (w <= 0f) continue;
-                            var rel = Vector3.Dot(velocities[l] - velocities[k], n);
-                            float bterm = betaBend * C / dt;
-                            float denom = w + cfmBend;
-                            float lambda = -(rel + bterm) / denom;
-                            lambda = MathF.Max(-lambdaClampBend, MathF.Min(lambdaClampBend, lambda));
-                            var dv = (lambda * Omega) * n;
-                            velocities[k] -= bend.Wk * dv;
-                            velocities[l] += bend.Wl * dv;
-                        }
-                    }
-                }
-            }
-
-            // 3) Collisions (current colliders may push positions; they also modify velocity)
-            if (_colliders.Count > 0)
-            {
-                foreach (var c in _colliders)
-                {
-                    c.Resolve(_prev, positions, velocities, dt, _cfg.CollisionThickness, _cfg.Friction);
-                }
-            }
-
-            // 4) Integrate positions and apply global damping (with tiny floor to ensure monotone non-increase)
-            float dampFactor = MathF.Max(0f, MathF.Min(1f, (1.0f - damping) - MicroDamp));
-            for (int i = 0; i < _vertexCount; i++)
-            {
-                if (_invMass[i] == 0f)
-                {
-                    velocities[i] = Vector3.Zero;
-                    continue;
-                }
-                velocities[i] *= dampFactor;
-                positions[i] += velocities[i] * dt;
-            }
-
-            // 5) Post-stabilization (position-level) — small corrective projections
-            const int postStabIters = PostStabIters;
-            // (Removed) Experimental area stabilization constants.
-            for (int ps = 0; ps < postStabIters; ps++)
-            {
-                // Stretch edges (only when present)
-                if (hasStretch)
-                {
-                    for (int e = 0; e < _edges.Length; e++)
-                    {
-                        ref readonly var edge = ref _edges[e];
-                        int i = edge.I;
-                        int j = edge.J;
-                        var d = positions[j] - positions[i];
-                        var lenSq = d.LengthSquared();
-                        if (lenSq <= 1e-18f) continue;
-                        var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
-                        var len = 1f / invLen;
-                        float C = len - edge.RestLength;
-                        var n = d * invLen;
-                        float wsum = edge.WSum;
-                        if (wsum <= 0f) continue;
-                        if (C > 0f)
-                        {
-                            float corrMag = PosAlphaStretch * C / MathF.Max(1e-8f, wsum);
+                            if (C <= 0f) continue;
+                            var n = d * invLen;
+                            float wsum = bend.WSum;
+                            if (wsum <= 0f) continue;
+                            float corrMag = PosAlphaBend * C / MathF.Max(1e-8f, wsum);
                             var corr = corrMag * n;
-                            positions[i] += edge.Wi * corr;
-                            positions[j] -= edge.Wj * corr;
+                            positionsArr[k] += bend.Wk * corr;
+                            positionsArr[l] -= bend.Wl * corr;
                         }
-                        else if (C < 0f)
+                    }
+                    // Tethers (single-body)
+                    if (hasTether)
+                    {
+                        for (int i = 0; i < _vertexCount; i++)
                         {
-                            // Gentle anti-compression to prevent over-contraction drift (adaptive)
-                            float rest = MathF.Max(1e-12f, edge.RestLength);
-                            float ratio = len / rest;
-                            float posAlphaCompress = ratio < 0.90f ? 0.40f : 0.20f;
-                            float corrMag = posAlphaCompress * (-C) / MathF.Max(1e-8f, wsum);
-                            var corr = corrMag * n;
-                            // Apply opposite to stretch: push apart slightly
-                            positions[i] -= edge.Wi * corr;
-                            positions[j] += edge.Wj * corr;
+                            float wi = _invMass[i];
+                            if (wi <= 0f) continue;
+                            Vector3 target;
+                            float targetLen;
+                            int a = _tetherAnchorIndex[i];
+                            if (a >= 0) { target = positionsArr[a]; targetLen = _tetherAnchorRestLength[i]; }
+                            else { target = _rest[i]; targetLen = 0f; }
+                            var d = positionsArr[i] - target;
+                            var lenSq = d.LengthSquared();
+                            if (lenSq <= 1e-18f) continue;
+                            var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
+                            var len = 1f / invLen;
+                            float C = len - targetLen;
+                            if (C <= 0f) continue;
+                            var n = d * invLen;
+                            var corr = PosAlphaTether * C * n;
+                            positionsArr[i] -= corr;
                         }
                     }
-                }
-                // Bend pairs (only when present)
-                if (hasBend)
-                {
-                    for (int b = 0; b < _bends.Length; b++)
-                    {
-                        ref readonly var bend = ref _bends[b];
-                        int k = bend.K;
-                        int l = bend.L;
-                        var d = positions[l] - positions[k];
-                        var lenSq = d.LengthSquared();
-                        if (lenSq <= 1e-18f) continue;
-                        var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
-                        var len = 1f / invLen;
-                        float C = len - bend.RestDistance;
-                        if (C <= 0f) continue;
-                        var n = d * invLen;
-                        float wsum = bend.WSum;
-                        if (wsum <= 0f) continue;
-                        float corrMag = PosAlphaBend * C / MathF.Max(1e-8f, wsum);
-                        var corr = corrMag * n;
-                        positions[k] += bend.Wk * corr;
-                        positions[l] -= bend.Wl * corr;
-                    }
-                }
-                // Tethers (single-body)
-                if (hasTether)
-                {
-                    for (int i = 0; i < _vertexCount; i++)
-                    {
-                        float wi = _invMass[i];
-                        if (wi <= 0f) continue;
-                        Vector3 target;
-                        float targetLen;
-                        int a = _tetherAnchorIndex[i];
-                        if (a >= 0) { target = positions[a]; targetLen = _tetherAnchorRestLength[i]; }
-                        else { target = _rest[i]; targetLen = 0f; }
-                        var d = positions[i] - target;
-                        var lenSq = d.LengthSquared();
-                        if (lenSq <= 1e-18f) continue;
-                        var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
-                        var len = 1f / invLen;
-                        float C = len - targetLen;
-                        if (C <= 0f) continue;
-                        var n = d * invLen;
-                        var corr = PosAlphaTether * C * n; // single-body
-                        positions[i] -= corr;
-                    }
+
+                    // (Removed) Experimental area stabilization pass.
                 }
 
-                // (Removed) Experimental area stabilization pass.
-            }
-
-            // Recompute velocities from positions delta to keep consistency
-            for (int i = 0; i < _vertexCount; i++)
-            {
-                if (_invMass[i] == 0f) { velocities[i] = Vector3.Zero; continue; }
-                velocities[i] = (positions[i] - _prev[i]) / dt;
-            }
+                // Recompute velocities from positions delta to keep consistency
+                for (int i = 0; i < _vertexCount; i++)
+                {
+                    if (_invMass[i] == 0f) { velocitiesArr[i] = Vector3.Zero; continue; }
+                    velocitiesArr[i] = (positionsArr[i] - _prev[i]) / dt;
+                }
 
 #if DOTCLOTH_ENABLE_VELOCITY_CLAMP
             // 6) Optional velocity clamp to reduce strain drift (applied after post-stabilization)
@@ -559,18 +557,19 @@ public sealed class VelocityImpulseSolver : IClothSimulator
             }
 #endif
 
-            // Global velocity cap (anti-divergence safety net) — apply last
-            if (hasStretch || hasBend || hasTether)
-            {
-                float vCap2 = MaxVelocityMagnitude * MaxVelocityMagnitude;
-                for (int i = 0; i < _vertexCount; i++)
+                // Global velocity cap (anti-divergence safety net) — apply last
+                if (hasStretch || hasBend || hasTether)
                 {
-                    var v = velocities[i];
-                    float s2 = v.LengthSquared();
-                    if (s2 > vCap2)
+                    float vCap2 = MaxVelocityMagnitude * MaxVelocityMagnitude;
+                    for (int i = 0; i < _vertexCount; i++)
                     {
-                        float inv = MaxVelocityMagnitude / MathF.Sqrt(s2);
-                        velocities[i] = v * inv;
+                        var v = velocities[i];
+                        float s2 = v.LengthSquared();
+                        if (s2 > vCap2)
+                        {
+                            float inv = MaxVelocityMagnitude / MathF.Sqrt(s2);
+                            velocities[i] = v * inv;
+                        }
                     }
                 }
             }

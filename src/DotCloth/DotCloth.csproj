@@ -17,6 +17,7 @@
     <!-- Preferred flag: DotClothEnableExperimentalXpbd=true → maps to DotClothExtraDefines -->
     <DotClothExtraDefines Condition="'$(DotClothEnableExperimentalXpbd)'=='true'">DOTCLOTH_EXPERIMENTAL_XPBD</DotClothExtraDefines>
     <DefineConstants>$(DefineConstants);$(DotClothExtraDefines)</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <None Include="../../README.md" Pack="true" PackagePath="/" />
