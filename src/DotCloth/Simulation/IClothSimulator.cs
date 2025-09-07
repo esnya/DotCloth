@@ -21,7 +21,7 @@ public interface IClothSimulator
     /// Advances the simulation by <paramref name="deltaTime"/>.
     /// Positions and velocities are updated in-place.
     /// </summary>
-    void Step(float deltaTime, Span<Vector3> positions, Span<Vector3> velocities);
+    void Step(float deltaTime, Vector3[] positions, Vector3[] velocities);
 
     /// <summary>Updates parameters. May re-derive internal coefficients.</summary>
     void UpdateParameters(Parameters.ClothParameters parameters);
