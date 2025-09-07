@@ -1,10 +1,10 @@
 [gd_scene load_steps=11 format=3 uid="uid://dscy83pxwa27q"]
 
 [ext_resource type="Script" uid="uid://csty00f88twjf" path="res://Main.cs" id="1"]
-[ext_resource type="Script" path="res://ClothDefinition.cs" id="2"]
-[ext_resource type="Script" path="res://SampleUi.cs" id="4"]
-[ext_resource type="Script" path="res://ColliderMover.cs" id="5"]
-[ext_resource type="Script" path="res://TubeMesh.cs" id="6"]
+[ext_resource type="Script" uid="uid://e4240ba1f2d2" path="res://ClothDefinition.cs" id="2"]
+[ext_resource type="Script" uid="uid://093847094a17" path="res://SampleUi.cs" id="4"]
+[ext_resource type="Script" uid="uid://b1a051012f04" path="res://ColliderMover.cs" id="5"]
+[ext_resource type="Script" uid="uid://81e9b6db9085" path="res://TubeMesh.cs" id="6"]
 
 [sub_resource type="PlaneMesh" id="1"]
 size = Vector2(1, 1)
@@ -44,6 +44,7 @@ current = true
 [node name="Sun" type="DirectionalLight3D" parent="."]
 light_color = Color(1, 0.98, 0.95, 1)
 light_energy = 2.2
+rotation_degrees = Vector3(-45, 30, 0)
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("5")
@@ -60,6 +61,7 @@ script = ExtResource("2")
 [node name="Tube" type="Node3D" parent="Scenarios"]
 
 [node name="Cloth" type="MeshInstance3D" parent="Scenarios/Tube"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.3, 0)
 mesh = SubResource("2")
 script = ExtResource("2")
 
@@ -150,7 +152,7 @@ anchor_left = 1.0
 anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 0.0
-offset_left = -210.0
+offset_left = -300.0
 offset_top = 10.0
 offset_right = -10.0
 

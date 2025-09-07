@@ -12,7 +12,7 @@ Move cloth, collider, and collider motion definitions into the Godot scene so th
 - `SampleUi` mediates user control and forwards events to `Main`.
 
 ## Model/API
-- `ClothDefinition : MeshInstance3D` exposes cloth mesh and transform. A 1‑unit template mesh is placed in the scene for the “Large” scenario; runtime vertex count adjustment is removed.
+ - `ClothDefinition : MeshInstance3D` exposes cloth mesh and transform and retains the scene’s original mesh so scenarios can be toggled without losing geometry. A 1‑unit template mesh is placed in the scene for the “Large” scenario; runtime vertex count adjustment is removed.
 - `ColliderDefinition : MeshInstance3D` exports `Shape` (`Sphere` or `Capsule`) and dimensions. Collider nodes are positioned so their local origin matches pinned vertices.
 - `ColliderMover : ColliderDefinition` adds exported motion parameters (`MotionAmplitude`, `MotionFrequency`, `MotionPhase`) and updates its own `GlobalPosition` each physics tick.
 - `TubeMesh : PrimitiveMesh` generates a cap-less tube with welded seam so the cloth can wrap fully around.

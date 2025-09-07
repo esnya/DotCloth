@@ -51,7 +51,7 @@ public partial class Main : Node3D
     // Collision scenario collider
     private ColliderDefinition? _collider;
     private readonly System.Collections.Generic.List<ColliderDefinition> _colliders = new();
-    private int _largeInstances = 20;
+    private int _largeInstances = 4;
     private float _largePinnedZ = 0f;
 
     public override void _Ready()
@@ -117,8 +117,6 @@ public partial class Main : Node3D
             Roughness = 0.9f,
             Metallic = 0.0f,
         };
-
-        _sun.RotationDegrees = new Vector3(45, 145, 0);
         UpdateCamera();
     }
 
@@ -279,11 +277,11 @@ public partial class Main : Node3D
 
         if (s == Scenario.Large)
         {
-            BuildLargeScenario(clothDef.Mesh);
+            BuildLargeScenario(clothDef.SourceMesh);
         }
         else
         {
-            var srcMesh = clothDef.Mesh;
+            var srcMesh = clothDef.SourceMesh;
             var srcArrays = srcMesh.SurfaceGetArrays(0);
             _mesh = new ArrayMesh();
             _mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, srcArrays);
@@ -619,7 +617,6 @@ public partial class Main : Node3D
         float fovRad = MathF.PI * _cam.Fov / 180f;
         _dist = radius / MathF.Tan(fovRad * 0.5f) * 1.4f;
         UpdateCamera();
-        _sun.RotationDegrees = new Vector3(45, 145, 0);
     }
     private void UpdateCamera()
     {

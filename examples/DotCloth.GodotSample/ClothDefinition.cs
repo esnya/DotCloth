@@ -8,4 +8,12 @@ namespace DotCloth.GodotSample;
 /// </summary>
 public partial class ClothDefinition : MeshInstance3D
 {
+    private Mesh _sourceMesh = default!;
+
+    public Mesh SourceMesh => _sourceMesh;
+
+    public override void _Ready()
+    {
+        _sourceMesh = Mesh;
+    }
 }
