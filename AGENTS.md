@@ -22,7 +22,7 @@ Testing and CI
 - Test framework: xUnit.
 - CI runs: format/lint/typecheck/test as required checks.
 - Task completion commands:
-  - `dotnet format --check`
+  - `dotnet format --verify-no-changes`
   - `dotnet build -f net9.0`
   - `dotnet test -f net9.0`
   - `dotnet build -f net8.0`
