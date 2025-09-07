@@ -10,6 +10,7 @@ High‑performance, UnityCloth‑compatible cloth simulation library targeting .
 ## Screenshot
 - ![MonoGame sample screenshot](docs/images/sample-monogame.png)
 - ![Godot sample screenshot](docs/images/sample-godot.png)
+- ⚠️ These captures come from an experimental build with higher throughput; the mainline solver is currently slower.
 
 ## Goals
 - UnityCloth‑compatible parameter structure and behavior alignment where practical.
