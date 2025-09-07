@@ -29,7 +29,6 @@ public partial class Main : Node3D
     private MeshInstance3D _ground = default!;
     private Node3D _scenarios = default!;
     private WorldEnvironment _worldEnv = default!;
-    private System.Collections.Generic.List<MeshInstance3D> _largeColliderVis = new();
 
     // Camera/light
     private Camera3D _cam = default!;
@@ -51,7 +50,7 @@ public partial class Main : Node3D
     private Scenario _scenario = Scenario.Minimal;
     // Collision scenario collider
     private ColliderDefinition? _collider;
-    private Vector3 _colliderBasePos;
+    private readonly System.Collections.Generic.List<ColliderDefinition> _colliders = new();
 
     public override void _Ready()
     {
@@ -66,37 +65,7 @@ public partial class Main : Node3D
     public override void _PhysicsProcess(double delta)
     {
         _time += delta;
-        // Dynamic collider motion (small oscillation) to observe contacts
-        if (_scenario == Scenario.Collision && _collider != null)
-        {
-            float t = (float)_time;
-            var basePos = _colliderBasePos;
-            float x = basePos.X + 0.15f * MathF.Sin(0.9f * t);
-            float z = basePos.Z + 0.15f * MathF.Cos(0.7f * t);
-            float y = basePos.Y + 0.05f * MathF.Sin(1.2f * t);
-            _collider.GlobalPosition = new Vector3(x, y, z);
-            ApplyCollisionSetup();
-        }
-        else if (_scenario == Scenario.Large)
-        {
-            float t = (float)_time;
-            var collidersDyn = new System.Collections.Generic.List<DotCloth.Simulation.Collision.ICollider>();
-            collidersDyn.Add(new DotCloth.Simulation.Collision.PlaneCollider(new Vec3(0, 1, 0), -0.8f));
-            for (int i = 0; i < _largeCenters.Count; i++)
-            {
-                var c = _largeCenters[i];
-                float phase = i * 0.6f;
-                var pos = new Vec3(
-                    c.X + 0.10f * MathF.Sin(0.8f * t + phase),
-                    c.Y,
-                    c.Z + 0.10f * MathF.Cos(0.6f * t + phase)
-                );
-                collidersDyn.Add(new DotCloth.Simulation.Collision.SphereCollider(pos, _largeColliderRadius));
-                if (i < _largeColliderVis.Count)
-                    _largeColliderVis[i].Position = new Vector3(pos.X, pos.Y, pos.Z);
-            }
-            _solver.SetColliders(collidersDyn.ToArray());
-        }
+        UpdateColliders();
 
         // Step simulation (measure)
         _sw.Restart();
@@ -162,17 +131,10 @@ public partial class Main : Node3D
         _ui.SetParameterValues(_parms.Iterations, _parms.StretchStiffness, _parms.BendStiffness);
     }
 
-    // Collider scenario controls
-    private int _largeN = 16;
-    private int _largeInstX = 2;
-    private int _largeInstY = 2;
     private System.Diagnostics.Stopwatch _sw = new();
     private double _perfAccum = 0.0;
     private double _fpsSmooth = 0.0;
     private double _time = 0.0;
-    private System.Collections.Generic.List<Vec3> _largeCenters = new();
-    private float _largeColliderRadius = 0.3f;
-    private Label? _largeInstInfo;
 
     private void BuildScenarioControls()
     {
@@ -189,7 +151,7 @@ public partial class Main : Node3D
                     var opt = new OptionButton();
                     opt.AddItem("Sphere", 0); opt.AddItem("Capsule", 1);
                     opt.Selected = (int)(_collider?.Shape ?? ColliderDefinition.ShapeKind.Sphere);
-                    opt.ItemSelected += (long i) => { if (_collider != null) { _collider.Shape = (ColliderDefinition.ShapeKind)i; ApplyCollisionSetup(); } };
+                    opt.ItemSelected += (long i) => { if (_collider != null) { _collider.Shape = (ColliderDefinition.ShapeKind)i; UpdateColliders(); } };
                     hbType.AddChild(opt);
                     _scenarioControls.AddChild(hbType);
 
@@ -199,63 +161,16 @@ public partial class Main : Node3D
                         var hbR = new HBoxContainer();
                         hbR.AddChild(new Label { Text = "Radius" });
                         var sR = new HSlider { MinValue = 0.2, MaxValue = 0.6, Step = 0.01, Value = _collider.Radius, CustomMinimumSize = new Vector2(220, 0) };
-                        sR.ValueChanged += (double v) => { _collider.Radius = (float)v; ApplyCollisionSetup(); };
+                        sR.ValueChanged += (double v) => { _collider.Radius = (float)v; UpdateColliders(); };
                         hbR.AddChild(sR);
                         _scenarioControls.AddChild(hbR);
                     }
-                    break;
-                }
-            case Scenario.Large:
-                {
-                    _scenarioControls.AddChild(new Label { Text = "Large Controls" });
-                    // Grid resolution (n)
-                    var hbN = new HBoxContainer();
-                    hbN.AddChild(new Label { Text = "Resolution n" });
-                    var sN = new HSlider { MinValue = 10, MaxValue = 28, Step = 2, Value = _largeN, CustomMinimumSize = new Vector2(220, 0) };
-                    sN.ValueChanged += (double v) => { _largeN = (int)v; };
-                    hbN.AddChild(sN);
-                    _scenarioControls.AddChild(hbN);
-                    // Instances X
-                    var hbIX = new HBoxContainer();
-                    hbIX.AddChild(new Label { Text = "Instances X" });
-                    var sIX = new HSlider { MinValue = 1, MaxValue = 5, Step = 1, Value = _largeInstX, CustomMinimumSize = new Vector2(220, 0) };
-                    sIX.ValueChanged += (double v) => { _largeInstX = (int)v; UpdateLargeInstInfo(); };
-                    hbIX.AddChild(sIX);
-                    _scenarioControls.AddChild(hbIX);
-                    // Instances Y
-                    var hbIY = new HBoxContainer();
-                    hbIY.AddChild(new Label { Text = "Instances Y" });
-                    var sIY = new HSlider { MinValue = 1, MaxValue = 5, Step = 1, Value = _largeInstY, CustomMinimumSize = new Vector2(220, 0) };
-                    sIY.ValueChanged += (double v) => { _largeInstY = (int)v; UpdateLargeInstInfo(); };
-                    hbIY.AddChild(sIY);
-                    _scenarioControls.AddChild(hbIY);
-                    // Instances info
-                    _largeInstInfo = new Label();
-                    _scenarioControls.AddChild(_largeInstInfo);
-                    UpdateLargeInstInfo();
-                    // Apply button to rebuild
-                    var apply = new Button { Text = "Apply Size" };
-                    apply.Pressed += () => { SetupScenario(Scenario.Large); };
-                    _scenarioControls.AddChild(apply);
                     break;
                 }
             default:
                 _scenarioControls.AddChild(new Label { Text = "No scenario-specific controls" });
                 break;
         }
-    }
-
-    private void HideAllColliderVisuals()
-    {
-        foreach (var v in _largeColliderVis)
-        {
-            if (v != null)
-            {
-                v.Visible = false;
-                v.QueueFree();
-            }
-        }
-        _largeColliderVis.Clear();
     }
 
     private static string GetScenarioDescription(Scenario s)
@@ -265,7 +180,7 @@ public partial class Main : Node3D
             Scenario.Minimal => "Square cloth pinned on one edge; ground plane.",
             Scenario.Tube => "Cylindrical cloth pinned at the top ring.",
             Scenario.Collision => "Square cloth with ground plane and a collider (Sphere/Capsule).",
-            Scenario.Large => "Multiple cloth instances with per-instance sphere colliders.",
+            Scenario.Large => "Large cloth with multiple moving sphere colliders.",
             _ => ""
         };
     }
@@ -312,13 +227,6 @@ public partial class Main : Node3D
         _solver.UpdateParameters(_parms);
     }
 
-    private void UpdateLargeInstInfo()
-    {
-        if (_largeInstInfo == null) return;
-        int total = _largeInstX * _largeInstY;
-        _largeInstInfo.Text = $"Instances: {_largeInstX} × {_largeInstY} = {total}";
-    }
-
     private void AutoPinEdge()
     {
         var min = new Vec3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
@@ -348,7 +256,7 @@ public partial class Main : Node3D
     {
         _scenario = s;
         _pinned.Clear();
-        HideAllColliderVisuals();
+        _colliders.Clear();
         foreach (var node in _scenarios.GetChildren())
             if (node is Node3D n) n.Visible = false;
         var scenNode = _scenarios.GetNode<Node3D>(s.ToString());
@@ -385,14 +293,13 @@ public partial class Main : Node3D
         _parms.Iterations = def.iter; _parms.StretchStiffness = def.stretch; _parms.BendStiffness = def.bend;
         _solver.Initialize(_positions, _triangles, _parms);
         AutoPinEdge();
-        _solver.SetColliders(new DotCloth.Simulation.Collision.ICollider[] { new DotCloth.Simulation.Collision.PlaneCollider(new Vec3(0, 1, 0), -0.8f) });
 
-        if (s == Scenario.Collision)
-        {
-            _collider = scenNode.GetNode<ColliderDefinition>("Collider");
-            _colliderBasePos = _collider.GlobalPosition;
-            ApplyCollisionSetup();
-        }
+        foreach (var child in scenNode.GetChildren())
+            if (child is ColliderDefinition cd)
+                _colliders.Add(cd);
+        _collider = s == Scenario.Collision && _colliders.Count > 0 ? _colliders[0] : null;
+
+        UpdateColliders();
 
         UpdateMesh();
         AutoFrame();
@@ -434,26 +341,31 @@ public partial class Main : Node3D
     }
 
 
-    private void ApplyCollisionSetup()
+    private void UpdateColliders()
     {
-        if (_scenario != Scenario.Collision || _collider == null) return;
+        var colliders = new System.Collections.Generic.List<DotCloth.Simulation.Collision.ICollider>
+        {
+            new DotCloth.Simulation.Collision.PlaneCollider(new Vec3(0, 1, 0), -0.8f)
+        };
 
-        var colliders = new System.Collections.Generic.List<DotCloth.Simulation.Collision.ICollider>();
-        colliders.Add(new DotCloth.Simulation.Collision.PlaneCollider(new Vec3(0, 1, 0), -0.8f));
-        var pos = _collider.GlobalPosition;
-        if (_collider.Shape == ColliderDefinition.ShapeKind.Sphere)
+        foreach (var cd in _colliders)
         {
-            colliders.Add(new DotCloth.Simulation.Collision.SphereCollider(new Vec3(pos.X, pos.Y, pos.Z), _collider.Radius));
-            _collider.Mesh = new SphereMesh { Radius = _collider.Radius, Height = _collider.Radius * 2f, RadialSegments = 32, Rings = 16 };
+            var pos = cd.GlobalPosition;
+            if (cd.Shape == ColliderDefinition.ShapeKind.Sphere)
+            {
+                colliders.Add(new DotCloth.Simulation.Collision.SphereCollider(new Vec3(pos.X, pos.Y, pos.Z), cd.Radius));
+                cd.Mesh = new SphereMesh { Radius = cd.Radius, Height = cd.Radius * 2f, RadialSegments = 32, Rings = 16 };
+            }
+            else
+            {
+                float h = cd.Height;
+                float h0 = pos.Y + h * 0.5f;
+                float h1 = pos.Y - h * 0.5f;
+                colliders.Add(new DotCloth.Simulation.Collision.CapsuleCollider(new Vec3(pos.X, h0, pos.Z), new Vec3(pos.X, h1, pos.Z), cd.Radius));
+                cd.Mesh = new CapsuleMesh { Radius = cd.Radius, Height = MathF.Max(0.001f, h), RadialSegments = 32, Rings = 16 };
+            }
         }
-        else
-        {
-            float h = _collider.Height;
-            float h0 = pos.Y + h * 0.5f;
-            float h1 = pos.Y - h * 0.5f;
-            colliders.Add(new DotCloth.Simulation.Collision.CapsuleCollider(new Vec3(pos.X, h0, pos.Z), new Vec3(pos.X, h1, pos.Z), _collider.Radius));
-            _collider.Mesh = new CapsuleMesh { Radius = _collider.Radius, Height = MathF.Max(0.001f, h), RadialSegments = 32, Rings = 16 };
-        }
+
         _solver.SetColliders(colliders.ToArray());
     }
 

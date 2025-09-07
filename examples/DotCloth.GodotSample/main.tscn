@@ -1,9 +1,9 @@
-[gd_scene load_steps=10 format=3 uid="uid://dscy83pxwa27q"]
+[gd_scene load_steps=11 format=3 uid="uid://dscy83pxwa27q"]
 
 [ext_resource type="Script" uid="uid://csty00f88twjf" path="res://Main.cs" id="1"]
 [ext_resource type="Script" path="res://ClothDefinition.cs" id="2"]
-[ext_resource type="Script" path="res://ColliderDefinition.cs" id="3"]
 [ext_resource type="Script" path="res://SampleUi.cs" id="4"]
+[ext_resource type="Script" path="res://ColliderMover.cs" id="5"]
 
 [sub_resource type="PlaneMesh" id="1"]
 size = Vector2(1, 1)
@@ -23,13 +23,17 @@ subdivide_width = 30
 subdivide_depth = 30
 
 [sub_resource type="PlaneMesh" id="4"]
-size = Vector2(6, 6)
-subdivide_width = 60
-subdivide_depth = 60
+size = Vector2(1, 1)
+subdivide_width = 15
+subdivide_depth = 15
 
 [sub_resource type="SphereMesh" id="6"]
 radius = 0.4
 height = 0.8
+
+[sub_resource type="SphereMesh" id="7"]
+radius = 0.3
+height = 0.6
 
 [sub_resource type="Environment" id="5"]
 
@@ -70,15 +74,34 @@ script = ExtResource("2")
 [node name="Collider" type="MeshInstance3D" parent="Scenarios/Collision"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.3, 0)
 mesh = SubResource("6")
-script = ExtResource("3")
+script = ExtResource("5")
 radius = 0.4
 height = 0.8
+motion_amplitude = Vector3(0.15, 0.05, 0.15)
+motion_frequency = Vector3(0.9, 1.2, 0.7)
 
 [node name="Large" type="Node3D" parent="Scenarios"]
 
 [node name="Cloth" type="MeshInstance3D" parent="Scenarios/Large"]
 mesh = SubResource("4")
 script = ExtResource("2")
+
+[node name="Collider1" type="MeshInstance3D" parent="Scenarios/Large"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.4, -0.3, 0)
+mesh = SubResource("7")
+script = ExtResource("5")
+radius = 0.3
+motion_amplitude = Vector3(0.1, 0, 0.1)
+motion_frequency = Vector3(0.8, 1, 0.6)
+
+[node name="Collider2" type="MeshInstance3D" parent="Scenarios/Large"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, -0.3, 0)
+mesh = SubResource("7")
+script = ExtResource("5")
+radius = 0.3
+motion_amplitude = Vector3(0.1, 0, 0.1)
+motion_frequency = Vector3(0.8, 1, 0.6)
+motion_phase = 0.6
 
 [node name="UI" type="CanvasLayer" parent="."]
 layer = 100
