@@ -17,6 +17,8 @@ Move cloth, collider, and collider motion definitions into the Godot scene so th
 - `ColliderMover : ColliderDefinition` adds exported motion parameters (`MotionAmplitude`, `MotionFrequency`, `MotionPhase`) and updates its own `GlobalPosition` each physics tick.
 - `TubeMesh : PrimitiveMesh` generates a cap-less tube with welded seam so the cloth can wrap fully around.
 - `SampleUi : PanelContainer` connects sliders and option button to `Main` via exported node reference and exposes Large scenario instance count.
+- Large scenario instance count uses Reset/+/- buttons instead of a slider.
+- `Main` rebuilds per-frame normals using `Vec3.Cross(e2, e1)` so cloth lighting matches the scene’s sun direction.
 
 ## Placement/Dependencies
 - Scene nodes reference these scripts via `script` property.

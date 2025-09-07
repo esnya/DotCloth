@@ -51,7 +51,8 @@ public partial class Main : Node3D
     // Collision scenario collider
     private ColliderDefinition? _collider;
     private readonly System.Collections.Generic.List<ColliderDefinition> _colliders = new();
-    private int _largeInstances = 4;
+    private const int LargeDefaultInstances = 4;
+    private int _largeInstances = LargeDefaultInstances;
     private float _largePinnedZ = 0f;
 
     public override void _Ready()
@@ -172,9 +173,17 @@ public partial class Main : Node3D
                     _scenarioControls.AddChild(new Label { Text = "Large Controls" });
                     var hb = new HBoxContainer();
                     hb.AddChild(new Label { Text = "Instances" });
-                    var s = new HSlider { MinValue = 1, MaxValue = 20, Step = 1, Value = _largeInstances, CustomMinimumSize = new Vector2(220, 0) };
-                    s.ValueChanged += v => { _largeInstances = (int)v; if (_scenario == Scenario.Large) SetupScenario(Scenario.Large); };
-                    hb.AddChild(s);
+                    var reset = new Button { Text = "Reset" };
+                    var minus = new Button { Text = "-" };
+                    var count = new Label { Text = _largeInstances.ToString() };
+                    var plus = new Button { Text = "+" };
+                    reset.Pressed += () => { _largeInstances = LargeDefaultInstances; count.Text = _largeInstances.ToString(); if (_scenario == Scenario.Large) SetupScenario(Scenario.Large); };
+                    minus.Pressed += () => { _largeInstances = Math.Max(1, _largeInstances - 1); count.Text = _largeInstances.ToString(); if (_scenario == Scenario.Large) SetupScenario(Scenario.Large); };
+                    plus.Pressed += () => { _largeInstances = Math.Min(20, _largeInstances + 1); count.Text = _largeInstances.ToString(); if (_scenario == Scenario.Large) SetupScenario(Scenario.Large); };
+                    hb.AddChild(reset);
+                    hb.AddChild(minus);
+                    hb.AddChild(count);
+                    hb.AddChild(plus);
                     _scenarioControls.AddChild(hb);
                     break;
                 }
@@ -475,7 +484,8 @@ public partial class Main : Node3D
             int i2 = triangles[ti + 2];
             var p0 = positions[i0]; var p1 = positions[i1]; var p2 = positions[i2];
             var e1 = p1 - p0; var e2 = p2 - p0;
-            var n = Vec3.Cross(e1, e2);
+            // Godot surfaces use clockwise winding; flip cross to orient normals outward.
+            var n = Vec3.Cross(e2, e1);
             normals[i0] += n; normals[i1] += n; normals[i2] += n;
         }
         for (int i = 0; i < normals.Length; i++)

@@ -23,7 +23,7 @@ Controls
 - Pin: Left click near a vertex
 - Unpin: Middle click near a pinned vertex; Reset pins: R
 - Scenarios: 1–4 keys or dropdown (Minimal, Tube, Collision, Large)
-- Large scenario exposes an instance-count slider that spawns a grid of cloths with per-instance moving sphere colliders.
+- Large scenario exposes Reset/+/- buttons for instance count, spawning a grid of cloths with per-instance moving sphere colliders.
 
 Notes
 - The sample is intentionally not added to the solution to keep CI green (no Godot SDK required on agents).
