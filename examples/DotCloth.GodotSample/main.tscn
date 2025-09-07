@@ -1,6 +1,9 @@
-[gd_scene load_steps=7 format=3 uid="uid://dscy83pxwa27q"]
+[gd_scene load_steps=10 format=3 uid="uid://dscy83pxwa27q"]
 
 [ext_resource type="Script" uid="uid://csty00f88twjf" path="res://Main.cs" id="1"]
+[ext_resource type="Script" path="res://ClothDefinition.cs" id="2"]
+[ext_resource type="Script" path="res://ColliderDefinition.cs" id="3"]
+[ext_resource type="Script" path="res://SampleUi.cs" id="4"]
 
 [sub_resource type="PlaneMesh" id="1"]
 size = Vector2(1, 1)
@@ -24,6 +27,10 @@ size = Vector2(6, 6)
 subdivide_width = 60
 subdivide_depth = 60
 
+[sub_resource type="SphereMesh" id="6"]
+radius = 0.4
+height = 0.8
+
 [sub_resource type="Environment" id="5"]
 
 [node name="Main" type="Node3D"]
@@ -46,27 +53,39 @@ environment = SubResource("5")
 
 [node name="Cloth" type="MeshInstance3D" parent="Scenarios/Minimal"]
 mesh = SubResource("1")
+script = ExtResource("2")
 
 [node name="Tube" type="Node3D" parent="Scenarios"]
 
 [node name="Cloth" type="MeshInstance3D" parent="Scenarios/Tube"]
 mesh = SubResource("2")
+script = ExtResource("2")
 
 [node name="Collision" type="Node3D" parent="Scenarios"]
 
 [node name="Cloth" type="MeshInstance3D" parent="Scenarios/Collision"]
 mesh = SubResource("3")
+script = ExtResource("2")
+
+[node name="Collider" type="MeshInstance3D" parent="Scenarios/Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.3, 0)
+mesh = SubResource("6")
+script = ExtResource("3")
+radius = 0.4
+height = 0.8
 
 [node name="Large" type="Node3D" parent="Scenarios"]
 
 [node name="Cloth" type="MeshInstance3D" parent="Scenarios/Large"]
 mesh = SubResource("4")
+script = ExtResource("2")
 
 [node name="UI" type="CanvasLayer" parent="."]
 layer = 100
 
 [node name="Panel" type="PanelContainer" parent="UI"]
 position = Vector2(10, 10)
+script = ExtResource("4")
 
 [node name="VBox" type="VBoxContainer" parent="UI/Panel"]
 
