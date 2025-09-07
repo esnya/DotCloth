@@ -152,26 +152,22 @@ public sealed class VelocityImpulseSolver : IClothSimulator
         float betaBend = MapStiffnessToBeta(_cfg.BendStiffness, dt, iterations) * BendBetaScale * edgeScale;
         float betaTether = MathF.Min(0.75f, MapStiffnessToBeta(_cfg.TetherStiffness, dt, iterations) * 1.35f);
 
-        float cfmStretch = BaseCfmStretch / (_cfg.StretchStiffness + 1e-6f);
-        float cfmBend = BaseCfmBend / (_cfg.BendStiffness + 1e-6f) / edgeScale;
-        float cfmTether = BaseCfmTether / (_cfg.TetherStiffness + 1e-6f);
+        float stretchS = _cfg.StretchStiffness <= 0f ? 0f : MathF.Max(_cfg.StretchStiffness, 0.05f);
+        float bendS = _cfg.BendStiffness <= 0f ? 0f : MathF.Max(_cfg.BendStiffness, 0.1f);
+        float tetherS = _cfg.TetherStiffness <= 0f ? 0f : MathF.Max(_cfg.TetherStiffness, 0.05f);
 
-        float lambdaClampStretch = BaseLambdaClampStretch * _cfg.StretchStiffness;
-        float lambdaClampCompress = BaseLambdaClampCompress * _cfg.StretchStiffness;
-        float lambdaClampBend = BaseLambdaClampBend * _cfg.BendStiffness;
-        float lambdaClampTether = BaseLambdaClampTether * _cfg.TetherStiffness;
+        bool hasStretch = _cfg.StretchStiffness > 0f && _edges.Length > 0;
+        bool hasBend = _cfg.BendStiffness > 0f && _bends.Length > 0;
+        bool hasTether = _cfg.TetherStiffness > 0f && _tetherAnchorIndex.Length > 0;
 
-        bool hasStretch = _edges.Length > 0;
-        bool hasBend = _bends.Length > 0;
-        bool hasTether = false;
-        for (int i = 0; i < _tetherAnchorIndex.Length; i++)
-        {
-            if (_tetherAnchorIndex[i] >= 0)
-            {
-                hasTether = true;
-                break;
-            }
-        }
+        float cfmStretch = hasStretch ? BaseCfmStretch / stretchS : 0f;
+        float cfmBend = hasBend ? BaseCfmBend / bendS / edgeScale : 0f;
+        float cfmTether = hasTether ? BaseCfmTether / tetherS : 0f;
+
+        float lambdaClampStretch = hasStretch ? BaseLambdaClampStretch * stretchS : 0f;
+        float lambdaClampCompress = hasStretch ? BaseLambdaClampCompress * stretchS : 0f;
+        float lambdaClampBend = hasBend ? BaseLambdaClampBend * bendS : 0f;
+        float lambdaClampTether = hasTether ? BaseLambdaClampTether * tetherS : 0f;
 
         // Stabilizers: small CFM (softness), under-relaxation, per-iteration impulse clamp
 
@@ -372,8 +368,8 @@ public sealed class VelocityImpulseSolver : IClothSimulator
             // (Removed) Experimental area stabilization constants.
             for (int ps = 0; ps < postStabIters; ps++)
             {
-                // Stretch edges (only when enabled)
-                if (_cfg.StretchStiffness > 0f)
+                // Stretch edges (only when present)
+                if (hasStretch)
                 {
                     for (int e = 0; e < _edges.Length; e++)
                     {
@@ -410,8 +406,8 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                         }
                     }
                 }
-                // Bend pairs (only when enabled)
-                if (_cfg.BendStiffness > 0f)
+                // Bend pairs (only when present)
+                if (hasBend)
                 {
                     for (int b = 0; b < _bends.Length; b++)
                     {
@@ -435,7 +431,7 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                     }
                 }
                 // Tethers (single-body)
-                if (_cfg.TetherStiffness > 0f)
+                if (hasTether)
                 {
                     for (int i = 0; i < _vertexCount; i++)
                     {
