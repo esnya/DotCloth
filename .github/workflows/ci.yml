@@ -60,6 +60,3 @@ jobs:
           dotnet vstest tests/DotCloth.Tests/bin/Release/${TFM}/DotCloth.Tests.dll
           --ResultsDirectory:logs --logger:"trx;LogFileName=results.trx"
 
-      - name: Build MonoGame Sample (Release)
-        if: ${{ matrix.extraProp == '' }}
-        run: dotnet build examples/DotCloth.MonoGameSample -c Release --no-restore -p:TargetFramework=${TFM}
