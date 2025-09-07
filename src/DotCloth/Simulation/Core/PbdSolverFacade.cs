@@ -31,7 +31,7 @@ public sealed class PbdSolver : IClothSimulator
         => _impl.Initialize(positions, triangles, parameters);
 
     /// <inheritdoc />
-    public void Step(float deltaTime, Span<Vector3> positions, Span<Vector3> velocities)
+    public void Step(float deltaTime, Vector3[] positions, Vector3[] velocities)
         => _impl.Step(deltaTime, positions, velocities);
 
     /// <inheritdoc />

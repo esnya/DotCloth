@@ -8,7 +8,7 @@ Parameter Model
 Core Interfaces
 - `IClothSimulator`
   - `void Initialize(ReadOnlySpan<Vector3> positions, ReadOnlySpan<int> triangles, ClothParameters parameters)`
-  - `void Step(float deltaTime, Span<Vector3> positions, Span<Vector3> velocities)`
+  - `void Step(float deltaTime, Vector3[] positions, Vector3[] velocities)`
   - `void UpdateParameters(ClothParameters parameters)`
   - `void SetInverseMasses(ReadOnlySpan<float> inverseMasses)` — 0 fixes a vertex (pinning)
   - `void PinVertices(ReadOnlySpan<int> indices)` — convenience pin API
