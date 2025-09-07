@@ -9,7 +9,7 @@ Ensure solver behaviour remains predictable as stiffness values approach zero.
 
 ## Testing
 - Parameter sweep for stretch, bend, and tether across low and high values.
-- `dotnet format --check`
+- `dotnet format --verify-no-changes`
 - `dotnet build -f net9.0`
 - `dotnet test -f net9.0`
 - `dotnet build -f net8.0`
