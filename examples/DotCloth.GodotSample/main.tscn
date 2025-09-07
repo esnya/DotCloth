@@ -4,18 +4,19 @@
 [ext_resource type="Script" path="res://ClothDefinition.cs" id="2"]
 [ext_resource type="Script" path="res://SampleUi.cs" id="4"]
 [ext_resource type="Script" path="res://ColliderMover.cs" id="5"]
+[ext_resource type="Script" path="res://TubeMesh.cs" id="6"]
 
 [sub_resource type="PlaneMesh" id="1"]
 size = Vector2(1, 1)
 subdivide_width = 15
 subdivide_depth = 15
 
-[sub_resource type="CylinderMesh" id="2"]
-top_radius = 0.5
-bottom_radius = 0.5
-height = 1.0
+[sub_resource type="PrimitiveMesh" id="2"]
+script = ExtResource("6")
 radial_segments = 20
-rings = 1
+height_segments = 15
+radius = 0.5
+height = 1.0
 
 [sub_resource type="PlaneMesh" id="3"]
 size = Vector2(2, 2)
@@ -31,9 +32,6 @@ subdivide_depth = 15
 radius = 0.4
 height = 0.8
 
-[sub_resource type="SphereMesh" id="7"]
-radius = 0.3
-height = 0.6
 
 [sub_resource type="Environment" id="5"]
 
@@ -72,7 +70,7 @@ mesh = SubResource("3")
 script = ExtResource("2")
 
 [node name="Collider" type="MeshInstance3D" parent="Scenarios/Collision"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.3, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.3, 1)
 mesh = SubResource("6")
 script = ExtResource("5")
 radius = 0.4
@@ -86,22 +84,6 @@ motion_frequency = Vector3(0.9, 1.2, 0.7)
 mesh = SubResource("4")
 script = ExtResource("2")
 
-[node name="Collider1" type="MeshInstance3D" parent="Scenarios/Large"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.4, -0.3, 0)
-mesh = SubResource("7")
-script = ExtResource("5")
-radius = 0.3
-motion_amplitude = Vector3(0.1, 0, 0.1)
-motion_frequency = Vector3(0.8, 1, 0.6)
-
-[node name="Collider2" type="MeshInstance3D" parent="Scenarios/Large"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, -0.3, 0)
-mesh = SubResource("7")
-script = ExtResource("5")
-radius = 0.3
-motion_amplitude = Vector3(0.1, 0, 0.1)
-motion_frequency = Vector3(0.8, 1, 0.6)
-motion_phase = 0.6
 
 [node name="UI" type="CanvasLayer" parent="."]
 layer = 100
@@ -168,7 +150,7 @@ anchor_left = 1.0
 anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 0.0
-offset_left = -190.0
+offset_left = -210.0
 offset_top = 10.0
 offset_right = -10.0
 

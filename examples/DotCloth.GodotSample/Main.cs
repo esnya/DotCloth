@@ -51,6 +51,8 @@ public partial class Main : Node3D
     // Collision scenario collider
     private ColliderDefinition? _collider;
     private readonly System.Collections.Generic.List<ColliderDefinition> _colliders = new();
+    private int _largeInstances = 20;
+    private float _largePinnedZ = 0f;
 
     public override void _Ready()
     {
@@ -167,6 +169,17 @@ public partial class Main : Node3D
                     }
                     break;
                 }
+            case Scenario.Large:
+                {
+                    _scenarioControls.AddChild(new Label { Text = "Large Controls" });
+                    var hb = new HBoxContainer();
+                    hb.AddChild(new Label { Text = "Instances" });
+                    var s = new HSlider { MinValue = 1, MaxValue = 20, Step = 1, Value = _largeInstances, CustomMinimumSize = new Vector2(220, 0) };
+                    s.ValueChanged += v => { _largeInstances = (int)v; if (_scenario == Scenario.Large) SetupScenario(Scenario.Large); };
+                    hb.AddChild(s);
+                    _scenarioControls.AddChild(hb);
+                    break;
+                }
             default:
                 _scenarioControls.AddChild(new Label { Text = "No scenario-specific controls" });
                 break;
@@ -263,10 +276,103 @@ public partial class Main : Node3D
         scenNode.Visible = true;
         var clothDef = scenNode.GetNode<ClothDefinition>("Cloth");
         _meshInst = clothDef;
-        var srcMesh = clothDef.Mesh;
-        var srcArrays = srcMesh.SurfaceGetArrays(0);
+
+        if (s == Scenario.Large)
+        {
+            BuildLargeScenario(clothDef.Mesh);
+        }
+        else
+        {
+            var srcMesh = clothDef.Mesh;
+            var srcArrays = srcMesh.SurfaceGetArrays(0);
+            _mesh = new ArrayMesh();
+            _mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, srcArrays);
+            _meshInst.Mesh = _mesh;
+            _meshInst.MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(0.85f, 0.9f, 1.0f),
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.PerPixel,
+                Roughness = 0.65f,
+                Metallic = 0.0f,
+                CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+            };
+
+            var gverts = (Array<Vector3>)srcArrays[(int)Mesh.ArrayType.Vertex];
+            var gidx = (Array<int>)srcArrays[(int)Mesh.ArrayType.Index];
+            _positions = new Vec3[gverts.Count];
+            for (int i = 0; i < gverts.Count; i++)
+            {
+                var v = gverts[i];
+                _positions[i] = new Vec3(v.X, v.Y, v.Z);
+            }
+            _triangles = gidx.ToArray();
+            _velocities = new Vec3[_positions.Length];
+
+            _solver = new PbdSolver();
+            var def = GetScenarioDefaults(s);
+            _parms.Iterations = def.iter; _parms.StretchStiffness = def.stretch; _parms.BendStiffness = def.bend;
+            _solver.Initialize(_positions, _triangles, _parms);
+            AutoPinEdge();
+
+            foreach (var child in scenNode.GetChildren())
+                if (child is ColliderDefinition cd)
+                    _colliders.Add(cd);
+            _collider = s == Scenario.Collision && _colliders.Count > 0 ? _colliders[0] : null;
+        }
+
+        UpdateColliders();
+
+        UpdateMesh();
+        AutoFrame();
+        BuildScenarioControls();
+        _ui.SetScenarioDescription(GetScenarioDescription(_scenario));
+        UpdateGlobalControlsFromParams();
+    }
+
+    private void BuildLargeScenario(Mesh template)
+    {
+        var srcArrays = template.SurfaceGetArrays(0);
+        var gverts = (Array<Vector3>)srcArrays[(int)Mesh.ArrayType.Vertex];
+        var gidx = (Array<int>)srcArrays[(int)Mesh.ArrayType.Index];
+        int nv = gverts.Count;
+        int nt = gidx.Count;
+        int count = _largeInstances;
+        _positions = new Vec3[nv * count];
+        _velocities = new Vec3[_positions.Length];
+        _triangles = new int[nt * count];
+        float maxZ = float.NegativeInfinity;
+        for (int i = 0; i < nv; i++)
+            if (gverts[i].Z > maxZ) maxZ = gverts[i].Z;
+        _largePinnedZ = maxZ;
+        var pins = new System.Collections.Generic.List<int>();
+        for (int inst = 0; inst < count; inst++)
+        {
+            int ix = inst % 5;
+            int iz = inst / 5;
+            var offset = new Vec3((ix - 2) * 2.2f, 0f, (iz - 1.5f) * 2.2f);
+            int baseIndex = inst * nv;
+            for (int v = 0; v < nv; v++)
+            {
+                var src = gverts[v];
+                _positions[baseIndex + v] = new Vec3(src.X + offset.X, src.Y + offset.Y, src.Z + offset.Z);
+            }
+            for (int t = 0; t < nt; t++)
+                _triangles[inst * nt + t] = gidx[t] + baseIndex;
+            for (int v = 0; v < nv; v++)
+                if (maxZ - gverts[v].Z <= 1e-3f) pins.Add(baseIndex + v);
+        }
         _mesh = new ArrayMesh();
-        _mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, srcArrays);
+        var arr = new Godot.Collections.Array();
+        arr.Resize((int)Mesh.ArrayType.Max);
+        var verts = new Vector3[_positions.Length];
+        for (int i = 0; i < _positions.Length; i++)
+        {
+            var p = _positions[i];
+            verts[i] = new Vector3(p.X, p.Y, p.Z);
+        }
+        arr[(int)Mesh.ArrayType.Vertex] = verts;
+        arr[(int)Mesh.ArrayType.Index] = _triangles;
+        _mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arr);
         _meshInst.Mesh = _mesh;
         _meshInst.MaterialOverride = new StandardMaterial3D
         {
@@ -276,36 +382,11 @@ public partial class Main : Node3D
             Metallic = 0.0f,
             CullMode = BaseMaterial3D.CullModeEnum.Disabled,
         };
-
-        var gverts = (Array<Vector3>)srcArrays[(int)Mesh.ArrayType.Vertex];
-        var gidx = (Array<int>)srcArrays[(int)Mesh.ArrayType.Index];
-        _positions = new Vec3[gverts.Count];
-        for (int i = 0; i < gverts.Count; i++)
-        {
-            var v = gverts[i];
-            _positions[i] = new Vec3(v.X, v.Y, v.Z);
-        }
-        _triangles = gidx.ToArray();
-        _velocities = new Vec3[_positions.Length];
-
         _solver = new PbdSolver();
-        var def = GetScenarioDefaults(s);
+        var def = GetScenarioDefaults(Scenario.Large);
         _parms.Iterations = def.iter; _parms.StretchStiffness = def.stretch; _parms.BendStiffness = def.bend;
         _solver.Initialize(_positions, _triangles, _parms);
-        AutoPinEdge();
-
-        foreach (var child in scenNode.GetChildren())
-            if (child is ColliderDefinition cd)
-                _colliders.Add(cd);
-        _collider = s == Scenario.Collision && _colliders.Count > 0 ? _colliders[0] : null;
-
-        UpdateColliders();
-
-        UpdateMesh();
-        AutoFrame();
-        BuildScenarioControls();
-        _ui.SetScenarioDescription(GetScenarioDescription(_scenario));
-        UpdateGlobalControlsFromParams();
+        _solver.PinVertices(pins.ToArray());
     }
 
     private void UpdateMesh()
@@ -348,21 +429,38 @@ public partial class Main : Node3D
             new DotCloth.Simulation.Collision.PlaneCollider(new Vec3(0, 1, 0), -0.8f)
         };
 
-        foreach (var cd in _colliders)
+        if (_scenario == Scenario.Large)
         {
-            var pos = cd.GlobalPosition;
-            if (cd.Shape == ColliderDefinition.ShapeKind.Sphere)
+            int count = _largeInstances;
+            for (int i = 0; i < count; i++)
             {
-                colliders.Add(new DotCloth.Simulation.Collision.SphereCollider(new Vec3(pos.X, pos.Y, pos.Z), cd.Radius));
-                cd.Mesh = new SphereMesh { Radius = cd.Radius, Height = cd.Radius * 2f, RadialSegments = 32, Rings = 16 };
+                int ix = i % 5;
+                int iz = i / 5;
+                var basePos = new Vec3((ix - 2) * 2.2f, 0.4f, (iz - 1.5f) * 2.2f + _largePinnedZ);
+                float phase = 0.5f * i;
+                float t = (float)(_time + phase);
+                var c = basePos + new Vec3(0.5f * MathF.Sin(t), 0.1f + 0.15f * MathF.Cos(1.1f * t), 0.5f * MathF.Cos(0.9f * t));
+                colliders.Add(new DotCloth.Simulation.Collision.SphereCollider(c, 0.25f));
             }
-            else
+        }
+        else
+        {
+            foreach (var cd in _colliders)
             {
-                float h = cd.Height;
-                float h0 = pos.Y + h * 0.5f;
-                float h1 = pos.Y - h * 0.5f;
-                colliders.Add(new DotCloth.Simulation.Collision.CapsuleCollider(new Vec3(pos.X, h0, pos.Z), new Vec3(pos.X, h1, pos.Z), cd.Radius));
-                cd.Mesh = new CapsuleMesh { Radius = cd.Radius, Height = MathF.Max(0.001f, h), RadialSegments = 32, Rings = 16 };
+                var pos = cd.GlobalPosition;
+                if (cd.Shape == ColliderDefinition.ShapeKind.Sphere)
+                {
+                    colliders.Add(new DotCloth.Simulation.Collision.SphereCollider(new Vec3(pos.X, pos.Y, pos.Z), cd.Radius));
+                    cd.Mesh = new SphereMesh { Radius = cd.Radius, Height = cd.Radius * 2f, RadialSegments = 32, Rings = 16 };
+                }
+                else
+                {
+                    float h = cd.Height;
+                    float h0 = pos.Y + h * 0.5f;
+                    float h1 = pos.Y - h * 0.5f;
+                    colliders.Add(new DotCloth.Simulation.Collision.CapsuleCollider(new Vec3(pos.X, h0, pos.Z), new Vec3(pos.X, h1, pos.Z), cd.Radius));
+                    cd.Mesh = new CapsuleMesh { Radius = cd.Radius, Height = MathF.Max(0.001f, h), RadialSegments = 32, Rings = 16 };
+                }
             }
         }
 

@@ -5,6 +5,7 @@ Overview
 - Minimal Godot 4 C# project that integrates DotCloth and renders a dynamic cloth mesh.
 - By default it uses the velocity‑level solver. The XPBD variant is experimental and requires compiling the library with `DOTCLOTH_EXPERIMENTAL_XPBD` and explicitly using `XpbdSolver`.
 - Scene-driven: `main.tscn` defines camera, lighting, ground, scenario meshes, and colliders with optional motion scripts. `ClothDefinition` marks cloth meshes, while `ColliderDefinition`/`ColliderMover` mark collider nodes that `Main.cs` reads each frame.
+- Scene-driven: `main.tscn` defines camera, lighting, ground, scenario meshes, and colliders with optional motion scripts. `ClothDefinition` marks cloth meshes, while `ColliderDefinition`/`ColliderMover` mark collider nodes that `Main.cs` reads each frame. `TubeMesh` provides a welded, cap-less tube for the Tube scenario.
 - Cross‑platform: runs on Windows/macOS/Linux with Godot 4 .NET installed.
 
 Requirements
@@ -22,6 +23,7 @@ Controls
 - Pin: Left click near a vertex
 - Unpin: Middle click near a pinned vertex; Reset pins: R
 - Scenarios: 1–4 keys or dropdown (Minimal, Tube, Collision, Large)
+- Large scenario exposes an instance-count slider that spawns a grid of cloths with per-instance moving sphere colliders.
 
 Notes
 - The sample is intentionally not added to the solution to keep CI green (no Godot SDK required on agents).
