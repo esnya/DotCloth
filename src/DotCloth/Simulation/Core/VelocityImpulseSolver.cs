@@ -152,14 +152,18 @@ public sealed class VelocityImpulseSolver : IClothSimulator
         float betaBend = MapStiffnessToBeta(_cfg.BendStiffness, dt, iterations) * BendBetaScale * edgeScale;
         float betaTether = MathF.Min(0.75f, MapStiffnessToBeta(_cfg.TetherStiffness, dt, iterations) * 1.35f);
 
-        float cfmStretch = BaseCfmStretch / (_cfg.StretchStiffness + 1e-6f);
-        float cfmBend = BaseCfmBend / (_cfg.BendStiffness + 1e-6f) / edgeScale;
-        float cfmTether = BaseCfmTether / (_cfg.TetherStiffness + 1e-6f);
+        float stretchS = MathF.Max(_cfg.StretchStiffness, 0.05f);
+        float bendS = MathF.Max(_cfg.BendStiffness, 0.1f);
+        float tetherS = MathF.Max(_cfg.TetherStiffness, 0.05f);
 
-        float lambdaClampStretch = BaseLambdaClampStretch * _cfg.StretchStiffness;
-        float lambdaClampCompress = BaseLambdaClampCompress * _cfg.StretchStiffness;
-        float lambdaClampBend = BaseLambdaClampBend * _cfg.BendStiffness;
-        float lambdaClampTether = BaseLambdaClampTether * _cfg.TetherStiffness;
+        float cfmStretch = BaseCfmStretch / stretchS;
+        float cfmBend = BaseCfmBend / bendS / edgeScale;
+        float cfmTether = BaseCfmTether / tetherS;
+
+        float lambdaClampStretch = BaseLambdaClampStretch * stretchS;
+        float lambdaClampCompress = BaseLambdaClampCompress * stretchS;
+        float lambdaClampBend = BaseLambdaClampBend * bendS;
+        float lambdaClampTether = BaseLambdaClampTether * tetherS;
 
         bool hasStretch = _edges.Length > 0;
         bool hasBend = _bends.Length > 0;
@@ -372,8 +376,8 @@ public sealed class VelocityImpulseSolver : IClothSimulator
             // (Removed) Experimental area stabilization constants.
             for (int ps = 0; ps < postStabIters; ps++)
             {
-                // Stretch edges (only when enabled)
-                if (_cfg.StretchStiffness > 0f)
+                // Stretch edges (only when present)
+                if (hasStretch)
                 {
                     for (int e = 0; e < _edges.Length; e++)
                     {
@@ -410,8 +414,8 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                         }
                     }
                 }
-                // Bend pairs (only when enabled)
-                if (_cfg.BendStiffness > 0f)
+                // Bend pairs (only when present)
+                if (hasBend)
                 {
                     for (int b = 0; b < _bends.Length; b++)
                     {
@@ -435,7 +439,7 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                     }
                 }
                 // Tethers (single-body)
-                if (_cfg.TetherStiffness > 0f)
+                if (_cfg.TetherStiffness > 0f || hasTether)
                 {
                     for (int i = 0; i < _vertexCount; i++)
                     {
