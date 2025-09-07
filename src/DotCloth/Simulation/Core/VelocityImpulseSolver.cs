@@ -439,7 +439,7 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                     }
                 }
                 // Tethers (single-body)
-                if (_cfg.TetherStiffness > 0f || hasTether)
+                if (hasTether)
                 {
                     for (int i = 0; i < _vertexCount; i++)
                     {
