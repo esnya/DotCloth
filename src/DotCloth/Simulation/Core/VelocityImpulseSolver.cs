@@ -152,30 +152,22 @@ public sealed class VelocityImpulseSolver : IClothSimulator
         float betaBend = MapStiffnessToBeta(_cfg.BendStiffness, dt, iterations) * BendBetaScale * edgeScale;
         float betaTether = MathF.Min(0.75f, MapStiffnessToBeta(_cfg.TetherStiffness, dt, iterations) * 1.35f);
 
-        float stretchS = MathF.Max(_cfg.StretchStiffness, 0.05f);
-        float bendS = MathF.Max(_cfg.BendStiffness, 0.1f);
-        float tetherS = MathF.Max(_cfg.TetherStiffness, 0.05f);
+        float stretchS = _cfg.StretchStiffness <= 0f ? 0f : MathF.Max(_cfg.StretchStiffness, 0.05f);
+        float bendS = _cfg.BendStiffness <= 0f ? 0f : MathF.Max(_cfg.BendStiffness, 0.1f);
+        float tetherS = _cfg.TetherStiffness <= 0f ? 0f : MathF.Max(_cfg.TetherStiffness, 0.05f);
 
-        float cfmStretch = BaseCfmStretch / stretchS;
-        float cfmBend = BaseCfmBend / bendS / edgeScale;
-        float cfmTether = BaseCfmTether / tetherS;
+        bool hasStretch = _cfg.StretchStiffness > 0f && _edges.Length > 0;
+        bool hasBend = _cfg.BendStiffness > 0f && _bends.Length > 0;
+        bool hasTether = _cfg.TetherStiffness > 0f && _tetherAnchorIndex.Length > 0;
 
-        float lambdaClampStretch = BaseLambdaClampStretch * stretchS;
-        float lambdaClampCompress = BaseLambdaClampCompress * stretchS;
-        float lambdaClampBend = BaseLambdaClampBend * bendS;
-        float lambdaClampTether = BaseLambdaClampTether * tetherS;
+        float cfmStretch = hasStretch ? BaseCfmStretch / stretchS : 0f;
+        float cfmBend = hasBend ? BaseCfmBend / bendS / edgeScale : 0f;
+        float cfmTether = hasTether ? BaseCfmTether / tetherS : 0f;
 
-        bool hasStretch = _edges.Length > 0;
-        bool hasBend = _bends.Length > 0;
-        bool hasTether = false;
-        for (int i = 0; i < _tetherAnchorIndex.Length; i++)
-        {
-            if (_tetherAnchorIndex[i] >= 0)
-            {
-                hasTether = true;
-                break;
-            }
-        }
+        float lambdaClampStretch = hasStretch ? BaseLambdaClampStretch * stretchS : 0f;
+        float lambdaClampCompress = hasStretch ? BaseLambdaClampCompress * stretchS : 0f;
+        float lambdaClampBend = hasBend ? BaseLambdaClampBend * bendS : 0f;
+        float lambdaClampTether = hasTether ? BaseLambdaClampTether * tetherS : 0f;
 
         // Stabilizers: small CFM (softness), under-relaxation, per-iteration impulse clamp
 
