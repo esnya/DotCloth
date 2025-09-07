@@ -34,3 +34,16 @@ export/
 
 # Build artifacts
 artifacts/
+
+# Logs and local build outputs
+*.log
+logs/
+
+# DocFX local site output
+docs/docfx/_site/
+
+# Simulation CLI output
+sim-out/
+
+# Local helper scripts and notes (do not commit)
+.codex/

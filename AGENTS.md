@@ -21,6 +21,16 @@ Core Principles (project‑specific focus)
 Testing and CI
 - Test framework: xUnit.
 - CI runs: format/lint/typecheck/test as required checks.
+- Task completion commands:
+  - `dotnet format --verify-no-changes`
+  - `dotnet build -f net9.0`
+  - `dotnet test -f net9.0`
+  - `dotnet build -f net8.0`
+  - `dotnet test -f net8.0`
+  - `dotnet build -f net9.0 --property DotClothEnableExperimentalXpbd=true`
+  - `dotnet test -f net9.0 --property DotClothEnableExperimentalXpbd=true`
+  - `dotnet build -f net8.0 --property DotClothEnableExperimentalXpbd=true`
+  - `dotnet test -f net8.0 --property DotClothEnableExperimentalXpbd=true`
 
 Performance Optimization Playbook
 - Measure-first: Add/adjust a perf harness, run representative single/multi-instance cases, and record results before/after.

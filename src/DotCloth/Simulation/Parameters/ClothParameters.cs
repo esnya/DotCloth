@@ -20,10 +20,10 @@ public sealed class ClothParameters
     /// <summary>Air drag (approximate), usually small (e.g., 0..0.1).</summary>
     public float AirDrag { get; set; } = 0.0f;
 
-    /// <summary>Stretch stiffness [0, 1]. Interpreted as XPBD compliance internally.</summary>
+    /// <summary>Stretch stiffness [0, 1]. Interpreted by the solver; in XPBD it maps to compliance.</summary>
     public float StretchStiffness { get; set; } = 1.0f;
 
-    /// <summary>Bend stiffness [0, 1]. Interpreted as XPBD compliance internally.</summary>
+    /// <summary>Bend stiffness [0, 1]. Interpreted by the solver; in XPBD it maps to compliance.</summary>
     public float BendStiffness { get; set; } = 0.5f;
 
     /// <summary>Tether stiffness [0, 1].</summary>
@@ -61,8 +61,8 @@ public sealed class ClothParameters
     public int Substeps { get; set; } = 1;
 
     /// <summary>
-    /// Global scale to derive XPBD compliance from [0..1] stiffness.
-    /// Smaller values increase effective rigidity. Typical: 1e-6 .. 1e-4.
+    /// When using the XPBD variant, global scale to derive compliance from [0..1] stiffness.
+    /// Smaller values increase effective rigidity. Ignored by the default solver. Typical: 1e-6 .. 1e-4.
     /// </summary>
     public float ComplianceScale { get; set; } = 1e-6f;
 }

@@ -22,11 +22,12 @@ public class PbdSolverTetherAndSphereTests
         var pos = new[] { new Vector3(1, 0, 0) };
         var vel = new[] { Vector3.Zero };
 
-        solver.Step(0.01f, pos, vel);
+        // Allow several steps to observe reduction under velocity-level stabilization
+        for (int i = 0; i < 10; i++) solver.Step(0.01f, pos, vel);
 
-        float d0 = Vector3.Distance(rest, new Vector3(1,0,0));
+        float d0 = Vector3.Distance(rest, new Vector3(1, 0, 0));
         float d1 = Vector3.Distance(rest, pos[0]);
-        Assert.True(d1 < d0);
+        Assert.True(d1 <= d0 - 1e-4f);
     }
 
     [Fact]
@@ -38,7 +39,7 @@ public class PbdSolverTetherAndSphereTests
         var p = new ClothParameters { UseGravity = false };
         var solver = new PbdSolver();
         solver.Initialize(positions, tris, p);
-        solver.SetColliders(new [] { new SphereCollider(Vector3.Zero, 0.5f) });
+        solver.SetColliders(new[] { new SphereCollider(Vector3.Zero, 0.5f) });
 
         solver.Step(0.016f, positions, velocities);
 

@@ -2,8 +2,10 @@ DotCloth Godot Sample
 =====================
 
 Overview
-- Minimal Godot 4 C# project that integrates the DotCloth XPBD solver and renders a dynamic cloth mesh.
-- Pure code-first: the scene (`main.tscn`) attaches `Main.cs` which creates camera, ambient-lit environment, light, mesh, ground, and steps the solver.
+- Minimal Godot 4 C# project that integrates DotCloth and renders a dynamic cloth mesh.
+- By default it uses the velocity‑level solver. The XPBD variant is experimental and requires compiling the library with `DOTCLOTH_EXPERIMENTAL_XPBD` and explicitly using `XpbdSolver`.
+- Scene-driven: `main.tscn` defines camera, lighting, ground, scenario meshes, and colliders with optional motion scripts. `ClothDefinition` marks cloth meshes, while `ColliderDefinition`/`ColliderMover` mark collider nodes that `Main.cs` reads each frame.
+- Scene-driven: `main.tscn` defines camera, lighting, ground, scenario meshes, and colliders with optional motion scripts. `ClothDefinition` marks cloth meshes, while `ColliderDefinition`/`ColliderMover` mark collider nodes that `Main.cs` reads each frame. `TubeMesh` provides a welded, cap-less tube for the Tube scenario.
 - Cross‑platform: runs on Windows/macOS/Linux with Godot 4 .NET installed.
 
 Requirements
@@ -20,7 +22,8 @@ Controls
 - Orbit camera: Right-drag, Wheel zoom
 - Pin: Left click near a vertex
 - Unpin: Middle click near a pinned vertex; Reset pins: R
-- Scenarios: 1–5 keys or dropdown (Minimal, Tube, Collision, Tuning, Large)
+- Scenarios: 1–4 keys or dropdown (Minimal, Tube, Collision, Large)
+- Large scenario exposes Reset/+/- buttons for instance count, spawning a grid of cloths with per-instance moving sphere colliders.
 
 Notes
 - The sample is intentionally not added to the solution to keep CI green (no Godot SDK required on agents).

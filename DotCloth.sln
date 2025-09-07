@@ -10,6 +10,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.Perf", "perf/DotCl
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.MonoGameSample", "examples/DotCloth.MonoGameSample/DotCloth.MonoGameSample.csproj", "{B86AB089-BC15-4906-AD3F-B79504556598}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.GodotSample", "examples/DotCloth.GodotSample/DotCloth.GodotSample.csproj", "{42185D7C-E4FB-477F-A071-0F44F4A3524A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.SimCli", "tools/DotCloth.SimCli/DotCloth.SimCli.csproj", "{B0D9281F-8C85-412E-A95B-5B7CC260251C}"
+EndProject
 Global
     GlobalSection(SolutionConfigurationPlatforms) = preSolution
         Debug|Any CPU = Debug|Any CPU
@@ -32,5 +36,13 @@ Global
         {B86AB089-BC15-4906-AD3F-B79504556598}.Debug|Any CPU.Build.0 = Debug|Any CPU
         {B86AB089-BC15-4906-AD3F-B79504556598}.Release|Any CPU.ActiveCfg = Release|Any CPU
         {B86AB089-BC15-4906-AD3F-B79504556598}.Release|Any CPU.Build.0 = Release|Any CPU
+        {42185D7C-E4FB-477F-A071-0F44F4A3524A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {42185D7C-E4FB-477F-A071-0F44F4A3524A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {42185D7C-E4FB-477F-A071-0F44F4A3524A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {42185D7C-E4FB-477F-A071-0F44F4A3524A}.Release|Any CPU.Build.0 = Release|Any CPU
+        {B0D9281F-8C85-412E-A95B-5B7CC260251C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {B0D9281F-8C85-412E-A95B-5B7CC260251C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {B0D9281F-8C85-412E-A95B-5B7CC260251C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {B0D9281F-8C85-412E-A95B-5B7CC260251C}.Release|Any CPU.Build.0 = Release|Any CPU
     EndGlobalSection
 EndGlobal

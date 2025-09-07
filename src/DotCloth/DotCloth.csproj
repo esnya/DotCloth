@@ -5,7 +5,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>DotCloth</PackageId>
     <Authors>DotCloth Team</Authors>
-    <Description>High-performance, UnityCloth-concept compatible XPBD cloth simulation library for .NET 9.0. Deterministic, thread-safe API with tests and CI.</Description>
+    <Description>High-performance, UnityCloth-concept compatible cloth simulation library for .NET 9.0. Default solver is velocity-level sequential impulses; an XPBD variant is experimental and available only behind the DOTCLOTH_EXPERIMENTAL_XPBD compile symbol.</Description>
     <PackageTags>cloth;PBD;XPBD;UnityCloth;simulation;physics</PackageTags>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
@@ -13,6 +13,10 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <EnablePackageValidation>true</EnablePackageValidation>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- Allow CI to inject extra conditional defines (e.g., DOTCLOTH_EXPERIMENTAL_XPBD) -->
+    <!-- Preferred flag: DotClothEnableExperimentalXpbd=true → maps to DotClothExtraDefines -->
+    <DotClothExtraDefines Condition="'$(DotClothEnableExperimentalXpbd)'=='true'">DOTCLOTH_EXPERIMENTAL_XPBD</DotClothExtraDefines>
+    <DefineConstants>$(DefineConstants);$(DotClothExtraDefines)</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <None Include="../../README.md" Pack="true" PackagePath="/" />

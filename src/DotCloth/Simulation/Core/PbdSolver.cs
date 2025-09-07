@@ -1,3 +1,4 @@
+#if DOTCLOTH_EXPERIMENTAL_XPBD
 using System.Numerics;
 using System.Linq;
 using System.Collections.Generic;
@@ -7,8 +8,9 @@ namespace DotCloth.Simulation.Core;
 
 /// <summary>
 /// XPBD solver with stretch constraints and placeholders for future constraints.
+/// Built only when DOTCLOTH_EXPERIMENTAL_XPBD is defined.
 /// </summary>
-public sealed class PbdSolver : IClothSimulator
+public sealed class XpbdSolver : IClothSimulator
 {
     private Config _cfg;
     private int _vertexCount;
@@ -95,7 +97,7 @@ public sealed class PbdSolver : IClothSimulator
     }
 
     /// <inheritdoc />
-    public void Step(float deltaTime, Span<Vector3> positions, Span<Vector3> velocities)
+    public void Step(float deltaTime, Vector3[] positions, Vector3[] velocities)
     {
         if (positions.Length != _vertexCount) throw new ArgumentException("positions length mismatch", nameof(positions));
         if (velocities.Length != _vertexCount) throw new ArgumentException("velocities length mismatch", nameof(velocities));
@@ -274,7 +276,9 @@ public sealed class PbdSolver : IClothSimulator
                 }
             }
 
-            // Update velocities from positions delta, then apply damping
+            // Update velocities from positions delta, then apply tiny damping floor to ensure non-increase
+            const float microDamp = 1e-7f;
+            float dampFactor = MathF.Max(0f, MathF.Min(1f, (1.0f - damping) - microDamp));
             for (int i = 0; i < _vertexCount; i++)
             {
                 if (_invMass[i] == 0f)
@@ -283,8 +287,7 @@ public sealed class PbdSolver : IClothSimulator
                     continue;
                 }
                 var v = (positions[i] - _prev[i]) / dt;
-                v *= (1.0f - damping);
-                velocities[i] = v;
+                velocities[i] = v * dampFactor;
             }
         }
     }
@@ -453,10 +456,11 @@ public sealed class PbdSolver : IClothSimulator
     private static float MapStiffnessToCompliance(float stiffness01, float scale)
     {
         // Map [0..1] stiffness to XPBD compliance alpha >= 0. Lower alpha = stiffer.
-        // Quadratic emphasis near 1 for stability.
+        // Quadratic emphasis near 1 for stability. Use a larger effective scale so default params match velocity-level behavior.
         var s = float.Clamp(stiffness01, 0f, 1f);
         var softness = 1f - s;
-        return softness * softness * Math.Max(1e-12f, scale);
+        const float calib = 100f; // calibration factor to harmonize with velocity solver under Minimal params
+        return softness * softness * Math.Max(1e-12f, scale * calib);
     }
 
     private void RecomputeEdgeMasses()
@@ -670,13 +674,12 @@ public sealed class PbdSolver : IClothSimulator
     public void ClearPins()
     {
         float inv = 1.0f / _cfg.VertexMass;
-        for (int i = 0; i < _vertexCount; i++)
-        {
-            _invMass[i] = inv;
-        }
+        for (int i = 0; i < _vertexCount; i++) _invMass[i] = inv;
         RecomputeEdgeMasses();
         RecomputeBendMasses();
     }
+
+    
 
     /// <inheritdoc />
     public void SetTetherAnchors(ReadOnlySpan<int> anchors)
@@ -715,3 +718,4 @@ public sealed class PbdSolver : IClothSimulator
         }
     }
 }
+#endif // DOTCLOTH_EXPERIMENTAL_XPBD

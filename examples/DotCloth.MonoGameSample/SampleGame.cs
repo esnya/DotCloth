@@ -32,7 +32,7 @@ public sealed class SampleGame : Game
     // Scenario state (multi-cloth)
     private IScenario _scenario = new MinimalScenario();
     private readonly List<ClothSim> _cloths = new();
-    private readonly List<(int i,int j)[]> _edgesPerCloth = new();
+    private readonly List<(int i, int j)[]> _edgesPerCloth = new();
     private readonly List<ICollider> _colliders = new();
     private readonly List<ColliderViz> _colliderViz = new();
     private readonly List<VertexPositionColor> _colliderLines = new();
@@ -47,6 +47,7 @@ public sealed class SampleGame : Game
     // Perf state
     private long _solverTicks;
     private double _emaFps, _emaSolverMs, _emaTotalMs, _emaSampleMs;
+    private readonly bool _xpbd = Type.GetType("DotCloth.Simulation.Core.XpbdSolver") is not null;
 
     public SampleGame()
     {
@@ -56,7 +57,7 @@ public sealed class SampleGame : Game
             PreferredBackBufferHeight = 720,
             PreferMultiSampling = true
         };
-        Window.Title = "DotCloth MonoGame Sample";
+        Window.Title = _xpbd ? "DotCloth MonoGame Sample (XPBD)" : "DotCloth MonoGame Sample";
         IsMouseVisible = true;
     }
 
@@ -193,7 +194,7 @@ public sealed class SampleGame : Game
         {
             Geometry.BuildUniqueEdges(c.Tri, out var edges);
             // Validate edges against current position array bounds
-            var list = new List<(int i,int j)>(edges.Length);
+            var list = new List<(int i, int j)>(edges.Length);
             int max = c.Pos.Length;
             for (int ei = 0; ei < edges.Length; ei++)
             {
@@ -238,7 +239,7 @@ public sealed class SampleGame : Game
             var edges = _edgesPerCloth[ci];
             for (int e = 0; e < edges.Length; e++)
             {
-                var (i,j) = edges[e];
+                var (i, j) = edges[e];
                 verts[k++] = new VertexPositionColor(ToXna(c.Pos[i]), Color.White);
                 verts[k++] = new VertexPositionColor(ToXna(c.Pos[j]), Color.White);
             }
@@ -263,10 +264,10 @@ public sealed class SampleGame : Game
         {
             float x = i * step;
             lines.Add(new VertexPositionColor(new XnaVec(x, y, -half * step), Color.DarkGray));
-            lines.Add(new VertexPositionColor(new XnaVec(x, y,  half * step), Color.DarkGray));
+            lines.Add(new VertexPositionColor(new XnaVec(x, y, half * step), Color.DarkGray));
             float z = i * step;
             lines.Add(new VertexPositionColor(new XnaVec(-half * step, y, z), Color.DarkGray));
-            lines.Add(new VertexPositionColor(new XnaVec( half * step, y, z), Color.DarkGray));
+            lines.Add(new VertexPositionColor(new XnaVec(half * step, y, z), Color.DarkGray));
         }
         var verts = lines.ToArray();
         var idx = new short[verts.Length]; for (short i = 0; i < idx.Length; i++) idx[i] = i;
@@ -298,7 +299,8 @@ public sealed class SampleGame : Game
         _emaSampleMs = Ema(_emaSampleMs, sampleMs, a);
         _emaTotalMs = Ema(_emaTotalMs, totalMs, a);
         int totalVerts = 0; foreach (var c in _cloths) totalVerts += c.Pos.Length;
-        Window.Title = $"DotCloth MonoGame Sample — {_scenario.Name} | FPS={_emaFps:F1} | Solver={_emaSolverMs:F2}ms | App={_emaSampleMs:F2}ms | Total={_emaTotalMs:F2}ms | Verts={totalVerts}";
+        var baseTitle = _xpbd ? "DotCloth MonoGame Sample (XPBD)" : "DotCloth MonoGame Sample";
+        Window.Title = $"{baseTitle} — {_scenario.Name} | FPS={_emaFps:F1} | Solver={_emaSolverMs:F2}ms | App={_emaSampleMs:F2}ms | Total={_emaTotalMs:F2}ms | Verts={totalVerts}";
     }
 
     private void LoadScenario(IScenario scenario)
@@ -365,9 +367,9 @@ public sealed class SampleGame : Game
     {
         int seg = 24;
         // three great circles
-        AddCircle(dst, center, radius, new XnaVec(1,0,0), new XnaVec(0,1,0), seg, color);
-        AddCircle(dst, center, radius, new XnaVec(1,0,0), new XnaVec(0,0,1), seg, color);
-        AddCircle(dst, center, radius, new XnaVec(0,1,0), new XnaVec(0,0,1), seg, color);
+        AddCircle(dst, center, radius, new XnaVec(1, 0, 0), new XnaVec(0, 1, 0), seg, color);
+        AddCircle(dst, center, radius, new XnaVec(1, 0, 0), new XnaVec(0, 0, 1), seg, color);
+        AddCircle(dst, center, radius, new XnaVec(0, 1, 0), new XnaVec(0, 0, 1), seg, color);
     }
 
     private static void AddCapsuleLines(List<VertexPositionColor> dst, XnaVec p0, XnaVec p1, float radius, Color color)
@@ -395,7 +397,7 @@ public sealed class SampleGame : Game
         for (int i = 0; i < seg; i++)
         {
             float a0 = (float)(2 * Math.PI * i / seg);
-            float a1 = (float)(2 * Math.PI * (i+1) / seg);
+            float a1 = (float)(2 * Math.PI * (i + 1) / seg);
             var p0 = center + (float)Math.Cos(a0) * u * radius + (float)Math.Sin(a0) * v * radius;
             var p1 = center + (float)Math.Cos(a1) * u * radius + (float)Math.Sin(a1) * v * radius;
             dst.Add(new VertexPositionColor(p0, color));
