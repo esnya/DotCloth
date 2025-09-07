@@ -9,6 +9,7 @@ Move cloth, collider, and collider motion definitions into the Godot scene so th
 - `ClothDefinition` marks mesh nodes providing initial geometry.
 - `ColliderDefinition` and `ColliderMover` mark collider nodes and optionally animate their transforms.
 - `TubeMesh` procedurally builds a seamless open cylinder used by the Tube scenario.
+- Tube scenario offsets the cylinder upward to clear the ground and pins its bottom ring so the cloth rests without intersection.
 - `SampleUi` mediates user control and forwards events to `Main`.
 
 ## Model/API

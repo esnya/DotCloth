@@ -198,7 +198,7 @@ public partial class Main : Node3D
         return s switch
         {
             Scenario.Minimal => "Square cloth pinned on one edge; ground plane.",
-            Scenario.Tube => "Cylindrical cloth pinned at the top ring.",
+            Scenario.Tube => "Cylindrical cloth pinned at the bottom ring.",
             Scenario.Collision => "Square cloth with ground plane and a collider (Sphere/Capsule).",
             Scenario.Large => "Large cloth with multiple moving sphere colliders.",
             _ => ""
@@ -247,7 +247,7 @@ public partial class Main : Node3D
         _solver.UpdateParameters(_parms);
     }
 
-    private void AutoPinEdge()
+    private void AutoPinEdge(bool pinTop = true)
     {
         var min = new Vec3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
         var max = new Vec3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
@@ -266,8 +266,9 @@ public partial class Main : Node3D
         }
         else
         {
+            float target = pinTop ? max.Y : min.Y;
             for (int i = 0; i < _positions.Length; i++)
-                if (max.Y - _positions[i].Y <= eps) pins.Add(i);
+                if (MathF.Abs(_positions[i].Y - target) <= eps) pins.Add(i);
         }
         PinVertices(pins);
     }
@@ -319,7 +320,7 @@ public partial class Main : Node3D
             var def = GetScenarioDefaults(s);
             _parms.Iterations = def.iter; _parms.StretchStiffness = def.stretch; _parms.BendStiffness = def.bend;
             _solver.Initialize(_positions, _triangles, _parms);
-            AutoPinEdge();
+            AutoPinEdge(pinTop: s != Scenario.Tube);
 
             foreach (var child in scenNode.GetChildren())
                 if (child is ColliderDefinition cd)

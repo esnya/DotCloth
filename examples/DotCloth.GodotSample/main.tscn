@@ -61,7 +61,7 @@ script = ExtResource("2")
 [node name="Tube" type="Node3D" parent="Scenarios"]
 
 [node name="Cloth" type="MeshInstance3D" parent="Scenarios/Tube"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.3, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
 mesh = SubResource("2")
 script = ExtResource("2")
 
