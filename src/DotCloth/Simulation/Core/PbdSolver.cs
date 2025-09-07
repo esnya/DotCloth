@@ -97,7 +97,7 @@ public sealed class XpbdSolver : IClothSimulator
     }
 
     /// <inheritdoc />
-    public void Step(float deltaTime, Span<Vector3> positions, Span<Vector3> velocities)
+    public void Step(float deltaTime, Vector3[] positions, Vector3[] velocities)
     {
         if (positions.Length != _vertexCount) throw new ArgumentException("positions length mismatch", nameof(positions));
         if (velocities.Length != _vertexCount) throw new ArgumentException("velocities length mismatch", nameof(velocities));

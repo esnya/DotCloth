@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using DotCloth.Simulation.Parameters;
 
 namespace DotCloth.Simulation.Core;
@@ -50,17 +51,14 @@ public sealed class VelocityImpulseSolver : IClothSimulator
     // Previous positions (for collision sweep and velocity update determinism)
     private Vector3[] _prev = Array.Empty<Vector3>();
 
-    // Topology: unique undirected edges for stretch
-    private struct Edge
-    {
-        public int I;
-        public int J;
-        public float RestLength;
-        public float Wi;
-        public float Wj;
-        public float WSum;
-    }
-    private Edge[] _edges = Array.Empty<Edge>();
+    // Topology: unique undirected edges for stretch (SoA for cache/SIMD)
+    private struct Edge { public int I; public int J; public float RestLength; }
+    private int[] _edgeI = Array.Empty<int>();
+    private int[] _edgeJ = Array.Empty<int>();
+    private float[] _edgeRestLength = Array.Empty<float>();
+    private float[] _edgeWi = Array.Empty<float>();
+    private float[] _edgeWj = Array.Empty<float>();
+    private float[] _edgeWSum = Array.Empty<float>();
     private int[][] _edgeBatches = Array.Empty<int[]>();
     private float _avgEdgeLength;
 
@@ -115,10 +113,24 @@ public sealed class VelocityImpulseSolver : IClothSimulator
         _tetherAnchorRestLength = new float[_vertexCount];
 
         ValidateTriangles(triangles, _vertexCount);
-        (_edges, _bends, _edgeBatches, _bendBatches) = BuildTopology(positions, triangles);
+        (var edgesTmp, _bends, _edgeBatches, _bendBatches) = BuildTopology(positions, triangles);
+        int edgeCount = edgesTmp.Length;
+        _edgeI = new int[edgeCount];
+        _edgeJ = new int[edgeCount];
+        _edgeRestLength = new float[edgeCount];
+        _edgeWi = new float[edgeCount];
+        _edgeWj = new float[edgeCount];
+        _edgeWSum = new float[edgeCount];
         float sum = 0f;
-        for (int i = 0; i < _edges.Length; i++) sum += _edges[i].RestLength;
-        _avgEdgeLength = _edges.Length > 0 ? sum / _edges.Length : ReferenceEdgeLength;
+        for (int e = 0; e < edgeCount; e++)
+        {
+            var edge = edgesTmp[e];
+            _edgeI[e] = edge.I;
+            _edgeJ[e] = edge.J;
+            _edgeRestLength[e] = edge.RestLength;
+            sum += edge.RestLength;
+        }
+        _avgEdgeLength = edgeCount > 0 ? sum / edgeCount : ReferenceEdgeLength;
         // Build triangle list and rest areas (experimental)
         // (Removed) Experimental triangle-area stabilization init.
         SortBatchesByVertexIndex();
@@ -128,12 +140,13 @@ public sealed class VelocityImpulseSolver : IClothSimulator
     }
 
     /// <inheritdoc />
-    public void Step(float deltaTime, Span<Vector3> positions, Span<Vector3> velocities)
+    public void Step(float deltaTime, Vector3[] positions, Vector3[] velocities)
     {
         if (positions.Length != _vertexCount) throw new ArgumentException("positions length mismatch", nameof(positions));
         if (velocities.Length != _vertexCount) throw new ArgumentException("velocities length mismatch", nameof(velocities));
         if (deltaTime <= 0) throw new ArgumentOutOfRangeException(nameof(deltaTime));
-
+        var positionsArr = positions;
+        var velocitiesArr = velocities;
         int substeps = Math.Max(1, _cfg.Substeps);
         int iterations = Math.Max(1, _cfg.Iterations);
         float dt = deltaTime / substeps;
@@ -156,7 +169,7 @@ public sealed class VelocityImpulseSolver : IClothSimulator
         float bendS = _cfg.BendStiffness <= 0f ? 0f : MathF.Max(_cfg.BendStiffness, 0.1f);
         float tetherS = _cfg.TetherStiffness <= 0f ? 0f : MathF.Max(_cfg.TetherStiffness, 0.05f);
 
-        bool hasStretch = _cfg.StretchStiffness > 0f && _edges.Length > 0;
+        bool hasStretch = _cfg.StretchStiffness > 0f && _edgeI.Length > 0;
         bool hasBend = _cfg.BendStiffness > 0f && _bends.Length > 0;
         bool hasTether = _cfg.TetherStiffness > 0f && _tetherAnchorIndex.Length > 0;
 
@@ -173,18 +186,17 @@ public sealed class VelocityImpulseSolver : IClothSimulator
 
         for (int s = 0; s < substeps; s++)
         {
-            // Save previous positions for collision sweep and velocity update
-            for (int i = 0; i < _vertexCount; i++) _prev[i] = positions[i];
+            Array.Copy(positionsArr, _prev, _vertexCount);
 
             // 1) External forces -> velocity (semi-implicit)
             for (int i = 0; i < _vertexCount; i++)
             {
                 if (_invMass[i] == 0f)
                 {
-                    velocities[i] = Vector3.Zero;
+                    velocitiesArr[i] = Vector3.Zero;
                     continue;
                 }
-                var v = velocities[i];
+                var v = velocitiesArr[i];
                 var a = accelBase;
                 if (useRandom)
                 {
@@ -193,7 +205,7 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                 }
                 v += a * dt;
                 v -= v * drag * dt; // simple drag
-                velocities[i] = v;
+                velocitiesArr[i] = v;
             }
 
             // 2) Constraint iterations (sequential impulses on velocity)
@@ -202,16 +214,16 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                 // Tether/Pin — solve first to let anchors dominate
                 if (hasTether)
                 {
-                    for (int i = 0; i < _vertexCount; i++)
+                    Parallel.For(0, _vertexCount, i =>
                     {
                         float wi = _invMass[i];
-                        if (wi <= 0f) continue;
+                        if (wi <= 0f) return;
                         Vector3 target;
                         float targetLen;
                         int a = _tetherAnchorIndex[i];
                         if (a >= 0)
                         {
-                            target = positions[a];
+                            target = positionsArr[a];
                             targetLen = _tetherAnchorRestLength[i];
                         }
                         else
@@ -219,36 +231,34 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                             target = _rest[i];
                             targetLen = 0f;
                         }
-                        var xi = positions[i];
+                        var xi = positionsArr[i];
                         var d = xi - target;
                         var lenSq = d.LengthSquared();
-                        if (lenSq <= 1e-18f) continue;
+                        if (lenSq <= 1e-18f) return;
                         var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
                         var len = 1f / invLen;
-                        var n = (target - xi) * invLen; // toward target
+                        var n = (target - xi) * invLen;
                         float C = len - targetLen;
-                        if (C <= 0f) continue; // inside target; do nothing
-                        float rel = Vector3.Dot(velocities[i], n); // anchor has zero velocity in constraint frame
+                        if (C <= 0f) return;
+                        float rel = Vector3.Dot(velocitiesArr[i], n);
                         float bterm = +betaTether * C / dt;
                         float w = wi;
                         float denom = w + cfmTether;
                         float lambda = -(rel + bterm) / denom;
                         lambda = MathF.Max(-lambdaClampTether, MathF.Min(lambdaClampTether, lambda));
                         var dv = (lambda * OmegaTether) * n;
-                        // Apply impulse to move toward target (sign adjusted via bterm)
-                        velocities[i] -= wi * dv;
-                        // Shock-like clamp: ensure sufficient inward velocity toward target when violating
+                        velocitiesArr[i] -= wi * dv;
                         if (C > 0f)
                         {
-                            float rel2 = Vector3.Dot(velocities[i], n); // inward component (along n)
-                            float targetRel = C / dt; // require at least this inward speed
+                            float rel2 = Vector3.Dot(velocitiesArr[i], n);
+                            float targetRel = C / dt;
                             if (rel2 < targetRel)
                             {
-                                float corr = (targetRel - rel2);
-                                velocities[i] += corr * n; // increase inward component
+                                float corr = targetRel - rel2;
+                                velocitiesArr[i] += corr * n;
                             }
                         }
-                    }
+                    });
                 }
 
                 // Stretch: edges
@@ -257,51 +267,47 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                     for (int b = 0; b < _edgeBatches.Length; b++)
                     {
                         var batch = _edgeBatches[b];
-                        for (int bi = 0; bi < batch.Length; bi++)
+                        Parallel.For(0, batch.Length, bi =>
                         {
                             int e = batch[bi];
-                            ref readonly var edge = ref _edges[e];
-                            int i = edge.I;
-                            int j = edge.J;
-                            var xi = positions[i];
-                            var xj = positions[j];
+                            int i = _edgeI[e];
+                            int j = _edgeJ[e];
+                            var xi = positionsArr[i];
+                            var xj = positionsArr[j];
                             var d = xj - xi;
                             var lenSq = d.LengthSquared();
-                            if (lenSq <= 1e-18f) continue;
+                            if (lenSq <= 1e-18f) return;
                             var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
                             var len = 1f / invLen;
                             var n = d * invLen;
-                            float C = len - edge.RestLength; // positional deviation
-                            float w = edge.WSum;
-                            if (w <= 0f) continue;
-                            var rel = Vector3.Dot(velocities[j] - velocities[i], n);
+                            float C = len - _edgeRestLength[e];
+                            float w = _edgeWSum[e];
+                            if (w <= 0f) return;
+                            var rel = Vector3.Dot(velocitiesArr[j] - velocitiesArr[i], n);
                             if (C > 0f)
                             {
-                                float bterm = -betaStretch * C / dt; // Baumgarte stabilization
+                                float bterm = -betaStretch * C / dt;
                                 float denom = w + cfmStretch;
                                 float lambda = -(rel + bterm) / denom;
-                                // impulse clamp (tension)
                                 lambda = MathF.Max(-lambdaClampStretch, MathF.Min(lambdaClampStretch, lambda));
                                 var dv = (lambda * Omega) * n;
-                                velocities[i] -= edge.Wi * dv;
-                                velocities[j] += edge.Wj * dv;
+                                velocitiesArr[i] -= _edgeWi[e] * dv;
+                                velocitiesArr[j] += _edgeWj[e] * dv;
                             }
                             else if (C < 0f)
                             {
-                                // Allow anchor-pair edges to compress freely (tether should win)
                                 if (_tetherAnchorIndex[i] == j || _tetherAnchorIndex[j] == i)
-                                    continue;
+                                    return;
                                 float betaC = betaStretch * CompressBetaScale;
-                                float bterm = -betaC * C / dt; // note: C<0 → bterm reduces compression slowly
+                                float bterm = -betaC * C / dt;
                                 float denom = w + cfmStretch * CfmCompressScale;
                                 float lambda = -(rel + bterm) / denom;
-                                // tighter clamp for compression
                                 lambda = MathF.Max(-lambdaClampCompress, MathF.Min(lambdaClampCompress, lambda));
                                 var dv = (lambda * Omega) * n;
-                                velocities[i] -= edge.Wi * dv;
-                                velocities[j] += edge.Wj * dv;
+                                velocitiesArr[i] -= _edgeWi[e] * dv;
+                                velocitiesArr[j] += _edgeWj[e] * dv;
                             }
-                        }
+                        });
                     }
                 }
 
@@ -311,32 +317,32 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                     for (int bb = 0; bb < _bendBatches.Length; bb++)
                     {
                         var batch = _bendBatches[bb];
-                        for (int bi = 0; bi < batch.Length; bi++)
+                        Parallel.For(0, batch.Length, bi =>
                         {
                             int biIdx = batch[bi];
                             ref readonly var bend = ref _bends[biIdx];
                             int k = bend.K;
                             int l = bend.L;
-                            var xk = positions[k];
-                            var xl = positions[l];
+                            var xk = positionsArr[k];
+                            var xl = positionsArr[l];
                             var d = xl - xk;
                             var lenSq = d.LengthSquared();
-                            if (lenSq <= 1e-18f) continue;
+                            if (lenSq <= 1e-18f) return;
                             var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
                             var len = 1f / invLen;
                             var n = d * invLen;
                             float C = len - bend.RestDistance;
                             float w = bend.WSum;
-                            if (w <= 0f) continue;
-                            var rel = Vector3.Dot(velocities[l] - velocities[k], n);
+                            if (w <= 0f) return;
+                            var rel = Vector3.Dot(velocitiesArr[l] - velocitiesArr[k], n);
                             float bterm = betaBend * C / dt;
                             float denom = w + cfmBend;
                             float lambda = -(rel + bterm) / denom;
                             lambda = MathF.Max(-lambdaClampBend, MathF.Min(lambdaClampBend, lambda));
                             var dv = (lambda * Omega) * n;
-                            velocities[k] -= bend.Wk * dv;
-                            velocities[l] += bend.Wl * dv;
-                        }
+                            velocitiesArr[k] -= bend.Wk * dv;
+                            velocitiesArr[l] += bend.Wl * dv;
+                        });
                     }
                 }
             }
@@ -346,7 +352,7 @@ public sealed class VelocityImpulseSolver : IClothSimulator
             {
                 foreach (var c in _colliders)
                 {
-                    c.Resolve(_prev, positions, velocities, dt, _cfg.CollisionThickness, _cfg.Friction);
+                    c.Resolve(_prev, positionsArr, velocitiesArr, dt, _cfg.CollisionThickness, _cfg.Friction);
                 }
             }
 
@@ -356,11 +362,11 @@ public sealed class VelocityImpulseSolver : IClothSimulator
             {
                 if (_invMass[i] == 0f)
                 {
-                    velocities[i] = Vector3.Zero;
+                    velocitiesArr[i] = Vector3.Zero;
                     continue;
                 }
-                velocities[i] *= dampFactor;
-                positions[i] += velocities[i] * dt;
+                velocitiesArr[i] *= dampFactor;
+                positionsArr[i] += velocitiesArr[i] * dt;
             }
 
             // 5) Post-stabilization (position-level) — small corrective projections
@@ -371,38 +377,35 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                 // Stretch edges (only when present)
                 if (hasStretch)
                 {
-                    for (int e = 0; e < _edges.Length; e++)
+                    for (int e = 0; e < _edgeI.Length; e++)
                     {
-                        ref readonly var edge = ref _edges[e];
-                        int i = edge.I;
-                        int j = edge.J;
-                        var d = positions[j] - positions[i];
+                        int i = _edgeI[e];
+                        int j = _edgeJ[e];
+                        var d = positionsArr[j] - positionsArr[i];
                         var lenSq = d.LengthSquared();
                         if (lenSq <= 1e-18f) continue;
                         var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
                         var len = 1f / invLen;
-                        float C = len - edge.RestLength;
+                        float C = len - _edgeRestLength[e];
                         var n = d * invLen;
-                        float wsum = edge.WSum;
+                        float wsum = _edgeWSum[e];
                         if (wsum <= 0f) continue;
                         if (C > 0f)
                         {
                             float corrMag = PosAlphaStretch * C / MathF.Max(1e-8f, wsum);
                             var corr = corrMag * n;
-                            positions[i] += edge.Wi * corr;
-                            positions[j] -= edge.Wj * corr;
+                            positionsArr[i] += _edgeWi[e] * corr;
+                            positionsArr[j] -= _edgeWj[e] * corr;
                         }
                         else if (C < 0f)
                         {
-                            // Gentle anti-compression to prevent over-contraction drift (adaptive)
-                            float rest = MathF.Max(1e-12f, edge.RestLength);
+                            float rest = MathF.Max(1e-12f, _edgeRestLength[e]);
                             float ratio = len / rest;
                             float posAlphaCompress = ratio < 0.90f ? 0.40f : 0.20f;
                             float corrMag = posAlphaCompress * (-C) / MathF.Max(1e-8f, wsum);
                             var corr = corrMag * n;
-                            // Apply opposite to stretch: push apart slightly
-                            positions[i] -= edge.Wi * corr;
-                            positions[j] += edge.Wj * corr;
+                            positionsArr[i] -= _edgeWi[e] * corr;
+                            positionsArr[j] += _edgeWj[e] * corr;
                         }
                     }
                 }
@@ -414,7 +417,7 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                         ref readonly var bend = ref _bends[b];
                         int k = bend.K;
                         int l = bend.L;
-                        var d = positions[l] - positions[k];
+                        var d = positionsArr[l] - positionsArr[k];
                         var lenSq = d.LengthSquared();
                         if (lenSq <= 1e-18f) continue;
                         var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
@@ -426,8 +429,8 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                         if (wsum <= 0f) continue;
                         float corrMag = PosAlphaBend * C / MathF.Max(1e-8f, wsum);
                         var corr = corrMag * n;
-                        positions[k] += bend.Wk * corr;
-                        positions[l] -= bend.Wl * corr;
+                        positionsArr[k] += bend.Wk * corr;
+                        positionsArr[l] -= bend.Wl * corr;
                     }
                 }
                 // Tethers (single-body)
@@ -440,9 +443,9 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                         Vector3 target;
                         float targetLen;
                         int a = _tetherAnchorIndex[i];
-                        if (a >= 0) { target = positions[a]; targetLen = _tetherAnchorRestLength[i]; }
+                        if (a >= 0) { target = positionsArr[a]; targetLen = _tetherAnchorRestLength[i]; }
                         else { target = _rest[i]; targetLen = 0f; }
-                        var d = positions[i] - target;
+                        var d = positionsArr[i] - target;
                         var lenSq = d.LengthSquared();
                         if (lenSq <= 1e-18f) continue;
                         var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
@@ -450,8 +453,8 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                         float C = len - targetLen;
                         if (C <= 0f) continue;
                         var n = d * invLen;
-                        var corr = PosAlphaTether * C * n; // single-body
-                        positions[i] -= corr;
+                        var corr = PosAlphaTether * C * n;
+                        positionsArr[i] -= corr;
                     }
                 }
 
@@ -461,8 +464,8 @@ public sealed class VelocityImpulseSolver : IClothSimulator
             // Recompute velocities from positions delta to keep consistency
             for (int i = 0; i < _vertexCount; i++)
             {
-                if (_invMass[i] == 0f) { velocities[i] = Vector3.Zero; continue; }
-                velocities[i] = (positions[i] - _prev[i]) / dt;
+                if (_invMass[i] == 0f) { velocitiesArr[i] = Vector3.Zero; continue; }
+                velocitiesArr[i] = (positionsArr[i] - _prev[i]) / dt;
             }
 
 #if DOTCLOTH_ENABLE_VELOCITY_CLAMP
@@ -473,87 +476,84 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                 // First, stronger pass
                 {
                     float kClamp = 0.8f; // correction factor
-                    for (int e = 0; e < _edges.Length; e++)
+                    for (int e = 0; e < _edgeI.Length; e++)
                     {
-                        ref readonly var edge = ref _edges[e];
-                        int i = edge.I;
-                        int j = edge.J;
-                        var d = positions[j] - positions[i];
+                        int i = _edgeI[e];
+                        int j = _edgeJ[e];
+                        var d = positionsArr[j] - positionsArr[i];
                         var lenSq = d.LengthSquared();
                         if (lenSq <= 1e-18f) continue;
                         var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
                         float L = 1f / invLen;
-                        float strain = L / MathF.Max(1e-12f, edge.RestLength);
+                        float strain = L / MathF.Max(1e-12f, _edgeRestLength[e]);
                         if (strain <= 1f + limit) continue;
                         var n = d * invLen;
-                        float rel = Vector3.Dot(velocities[j] - velocities[i], n);
+                        float rel = Vector3.Dot(velocitiesArr[j] - velocitiesArr[i], n);
                         float targetRel = -kClamp * (strain - (1f + limit)) / dt;
                         float corr = (rel - targetRel);
-                        float w = edge.WSum;
+                        float w = _edgeWSum[e];
                         if (w <= 0f) continue;
                         float lambda = corr / w;
                         var dv = lambda * n;
-                        velocities[i] += edge.Wi * dv;
-                        velocities[j] -= edge.Wj * dv;
+                        velocitiesArr[i] += _edgeWi[e] * dv;
+                        velocitiesArr[j] -= _edgeWj[e] * dv;
                     }
                 }
                 // Second, lighter pass to catch residual overstretch
                 {
                     float kClamp = 0.5f;
-                    for (int e = 0; e < _edges.Length; e++)
+                    for (int e = 0; e < _edgeI.Length; e++)
                     {
-                        ref readonly var edge = ref _edges[e];
-                        int i = edge.I;
-                        int j = edge.J;
-                        var d = positions[j] - positions[i];
+                        int i = _edgeI[e];
+                        int j = _edgeJ[e];
+                        var d = positionsArr[j] - positionsArr[i];
                         var lenSq = d.LengthSquared();
                         if (lenSq <= 1e-18f) continue;
                         var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
                         float L = 1f / invLen;
-                        float strain = L / MathF.Max(1e-12f, edge.RestLength);
+                        float strain = L / MathF.Max(1e-12f, _edgeRestLength[e]);
                         if (strain <= 1f + limit) continue;
                         var n = d * invLen;
-                        float rel = Vector3.Dot(velocities[j] - velocities[i], n);
+                        float rel = Vector3.Dot(velocitiesArr[j] - velocitiesArr[i], n);
                         float targetRel = -kClamp * (strain - (1f + limit)) / dt;
                         float corr = (rel - targetRel);
-                        float w = edge.WSum;
+                        float w = _edgeWSum[e];
                         if (w <= 0f) continue;
                         float lambda = corr / w;
                         var dv = lambda * n;
-                        velocities[i] += edge.Wi * dv;
-                        velocities[j] -= edge.Wj * dv;
+                        velocitiesArr[i] += _edgeWi[e] * dv;
+                        velocitiesArr[j] -= _edgeWj[e] * dv;
                     }
                 }
                 // Compression clamp: prevent edges from collapsing far below rest
                 {
                     float limitComp = 0.02f; // allow small compression tolerance
                     float kClampComp = 0.6f;
-                    for (int e = 0; e < _edges.Length; e++)
+                    for (int e = 0; e < _edgeI.Length; e++)
                     {
-                        ref readonly var edge = ref _edges[e];
-                        int i = edge.I;
-                        int j = edge.J;
+                        int i = _edgeI[e];
+                        int j = _edgeJ[e];
                         // Skip compression clamp for anchor-pair edges; tether should dominate
                         if (_tetherAnchorIndex[i] == j || _tetherAnchorIndex[j] == i) continue;
-                        var d = positions[j] - positions[i];
+                        var d = positionsArr[j] - positionsArr[i];
                         var lenSq = d.LengthSquared();
                         if (lenSq <= 1e-18f) continue;
                         var invLen = MathF.ReciprocalSqrtEstimate(lenSq);
                         float L = 1f / invLen;
-                        float rest = MathF.Max(1e-12f, edge.RestLength);
+                        float rest = MathF.Max(1e-12f, _edgeRestLength[e]);
                         float strain = L / rest;
                         if (strain >= 1f - limitComp) continue;
                         var n = d * invLen;
-                        float rel = Vector3.Dot(velocities[j] - velocities[i], n);
+                        float rel = Vector3.Dot(velocitiesArr[j] - velocitiesArr[i], n);
                         float targetRel = +kClampComp * ((1f - limitComp) - strain) / dt;
                         float corr = (targetRel - rel);
-                        float w = edge.WSum;
+                        float w = _edgeWSum[e];
                         if (w <= 0f) continue;
                         float lambda = corr / w;
                         var dv = lambda * n;
                         // Increase edge length rate: push j along +n, i along -n
-                        velocities[i] -= edge.Wi * dv;
-                        velocities[j] += edge.Wj * dv;
+                        velocitiesArr[i] -= _edgeWi[e] * dv;
+                        velocitiesArr[j] += _edgeWj[e] * dv;
                     }
                 }
             }
@@ -565,12 +565,12 @@ public sealed class VelocityImpulseSolver : IClothSimulator
                 float vCap2 = MaxVelocityMagnitude * MaxVelocityMagnitude;
                 for (int i = 0; i < _vertexCount; i++)
                 {
-                    var v = velocities[i];
+                    var v = velocitiesArr[i];
                     float s2 = v.LengthSquared();
                     if (s2 > vCap2)
                     {
                         float inv = MaxVelocityMagnitude / MathF.Sqrt(s2);
-                        velocities[i] = v * inv;
+                        velocitiesArr[i] = v * inv;
                     }
                 }
             }
@@ -600,10 +600,11 @@ public sealed class VelocityImpulseSolver : IClothSimulator
     {
         if (positions.Length != _vertexCount) throw new ArgumentException("positions length mismatch", nameof(positions));
         for (int i = 0; i < _vertexCount; i++) _rest[i] = positions[i];
-        for (int e = 0; e < _edges.Length; e++)
+        for (int e = 0; e < _edgeI.Length; e++)
         {
-            var (i, j) = (_edges[e].I, _edges[e].J);
-            _edges[e].RestLength = Vector3.Distance(positions[i], positions[j]);
+            int i = _edgeI[e];
+            int j = _edgeJ[e];
+            _edgeRestLength[e] = Vector3.Distance(positions[i], positions[j]);
         }
         for (int b = 0; b < _bends.Length; b++)
         {
@@ -777,10 +778,8 @@ public sealed class VelocityImpulseSolver : IClothSimulator
         {
             Array.Sort(_edgeBatches[bi], (x, y) =>
             {
-                var ex = _edges[x];
-                var ey = _edges[y];
-                int kx = ex.I < ex.J ? ex.I : ex.J;
-                int ky = ey.I < ey.J ? ey.I : ey.J;
+                int kx = _edgeI[x] < _edgeJ[x] ? _edgeI[x] : _edgeJ[x];
+                int ky = _edgeI[y] < _edgeJ[y] ? _edgeI[y] : _edgeJ[y];
                 return kx.CompareTo(ky);
             });
         }
@@ -809,12 +808,13 @@ public sealed class VelocityImpulseSolver : IClothSimulator
 
     private void RecomputeEdgeMasses()
     {
-        for (int e = 0; e < _edges.Length; e++)
+        for (int e = 0; e < _edgeI.Length; e++)
         {
-            ref var edge = ref _edges[e];
-            edge.Wi = _invMass[edge.I];
-            edge.Wj = _invMass[edge.J];
-            edge.WSum = edge.Wi + edge.Wj;
+            float wi = _invMass[_edgeI[e]];
+            float wj = _invMass[_edgeJ[e]];
+            _edgeWi[e] = wi;
+            _edgeWj[e] = wj;
+            _edgeWSum[e] = wi + wj;
         }
     }
 
