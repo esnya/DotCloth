@@ -4,7 +4,7 @@ DotCloth Godot Sample
 Overview
 - Minimal Godot 4 C# project that integrates DotCloth and renders a dynamic cloth mesh.
 - By default it uses the velocity‑level solver. The XPBD variant is experimental and requires compiling the library with `DOTCLOTH_EXPERIMENTAL_XPBD` and explicitly using `XpbdSolver`.
-- Scene-driven: `main.tscn` defines camera, light, ground, mesh, and UI nodes while `Main.cs` drives the solver and updates them.
+- Scene-driven: `main.tscn` defines camera, lighting, ground, scenario meshes, and UI panels; `Main.cs` reads the active mesh and updates its vertices.
 - Cross‑platform: runs on Windows/macOS/Linux with Godot 4 .NET installed.
 
 Requirements
@@ -21,7 +21,7 @@ Controls
 - Orbit camera: Right-drag, Wheel zoom
 - Pin: Left click near a vertex
 - Unpin: Middle click near a pinned vertex; Reset pins: R
-- Scenarios: 1–5 keys or dropdown (Minimal, Tube, Collision, Tuning, Large)
+- Scenarios: 1–4 keys or dropdown (Minimal, Tube, Collision, Large)
 
 Notes
 - The sample is intentionally not added to the solution to keep CI green (no Godot SDK required on agents).

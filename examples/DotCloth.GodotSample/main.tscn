@@ -1,6 +1,28 @@
-[gd_scene load_steps=2 format=3 uid="uid://dscy83pxwa27q"]
+[gd_scene load_steps=6 format=3 uid="uid://dscy83pxwa27q"]
 
 [ext_resource type="Script" uid="uid://csty00f88twjf" path="res://Main.cs" id="1"]
+
+[sub_resource type="PlaneMesh" id="1"]
+size = Vector2(1, 1)
+subdivide_width = 15
+subdivide_depth = 15
+
+[sub_resource type="CylinderMesh" id="2"]
+top_radius = 0.5
+bottom_radius = 0.5
+height = 1.0
+radial_segments = 20
+rings = 1
+
+[sub_resource type="PlaneMesh" id="3"]
+size = Vector2(2, 2)
+subdivide_width = 30
+subdivide_depth = 30
+
+[sub_resource type="PlaneMesh" id="4"]
+size = Vector2(6, 6)
+subdivide_width = 60
+subdivide_depth = 60
 
 [node name="Main" type="Node3D"]
 script = ExtResource("1")
@@ -14,9 +36,29 @@ light_energy = 2.2
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 
-[node name="ClothMesh" type="MeshInstance3D" parent="."]
-
 [node name="Ground" type="MeshInstance3D" parent="."]
+
+[node name="Scenarios" type="Node3D" parent="."]
+
+[node name="Minimal" type="Node3D" parent="Scenarios"]
+
+[node name="Cloth" type="MeshInstance3D" parent="Scenarios/Minimal"]
+mesh = SubResource("1")
+
+[node name="Tube" type="Node3D" parent="Scenarios"]
+
+[node name="Cloth" type="MeshInstance3D" parent="Scenarios/Tube"]
+mesh = SubResource("2")
+
+[node name="Collision" type="Node3D" parent="Scenarios"]
+
+[node name="Cloth" type="MeshInstance3D" parent="Scenarios/Collision"]
+mesh = SubResource("3")
+
+[node name="Large" type="Node3D" parent="Scenarios"]
+
+[node name="Cloth" type="MeshInstance3D" parent="Scenarios/Large"]
+mesh = SubResource("4")
 
 [node name="UI" type="CanvasLayer" parent="."]
 layer = 100
@@ -74,8 +116,11 @@ max_value = 1.0
 step = 0.01
 custom_minimum_size = Vector2(180, 0)
 
-[node name="ScenarioControls" type="VBoxContainer" parent="UI/Panel/VBox"]
-
 [node name="PerfLabel" type="Label" parent="UI/Panel/VBox"]
 text = "Perf: --"
+
+[node name="ScenarioPanel" type="PanelContainer" parent="UI"]
+position = Vector2(10, 180)
+
+[node name="ScenarioVBox" type="VBoxContainer" parent="UI/ScenarioPanel"]
 
