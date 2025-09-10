@@ -11,6 +11,7 @@ Core Principles (project‑specific focus)
 - Small and cohesive: Keep modules focused; avoid speculative abstractions (YAGNI) and duplication (DRY).
 - Design‑first: Add/adjust a short design note before non‑trivial implementation (see `docs/design/mini-design.md`).
 - Force modules: Each algorithm (springs, shells, FEM, strain limiting, etc.) lives in its own class implementing a dedicated interface so combinations remain swappable.
+- Collisions: Environment shapes implement `ICollider` with `Resolve(ref Vector3 position, ref Vector3 velocity)` and remain allocation-free per step.
 
 .NET/C# Baseline
 - Target frameworks: `net9.0`.
@@ -28,6 +29,9 @@ Testing and CI
   - `dotnet test -f net9.0`
   - `dotnet build -f net8.0`
   - `dotnet test -f net8.0`
+
+Samples
+- Sample projects maintain scenario parity and include a ground `PlaneCollider` so cloth particles collide with a Y=0 floor.
 
 Performance Optimization Playbook
 - Measure-first: Add/adjust a perf harness, run representative single/multi-instance cases, and record results before/after.

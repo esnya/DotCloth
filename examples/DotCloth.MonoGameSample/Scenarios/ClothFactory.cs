@@ -4,6 +4,7 @@ using DotCloth;
 using DotCloth.Forces;
 using DotCloth.Constraints;
 using DotCloth.MassSpring;
+using DotCloth.Collisions;
 
 namespace DotCloth.MonoGameSample.Scenarios;
 
@@ -79,13 +80,16 @@ internal static class ClothFactory
                 break;
         }
 
+        var colliders = new ICollider[] { new PlaneCollider(Vector3.Zero, Vector3.UnitY) };
+
         return new ForceCloth(
             positions,
             invMass,
             forces.ToArray(),
             new Vector3(0f, -9.81f, 0f),
             0.99f,
-            constraints.ToArray(),
-            SemiImplicitEulerIntegrator.Instance);
+            constraints: constraints.ToArray(),
+            integrator: SemiImplicitEulerIntegrator.Instance,
+            colliders: colliders);
     }
 }
