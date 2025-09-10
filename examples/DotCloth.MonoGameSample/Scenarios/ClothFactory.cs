@@ -10,7 +10,7 @@ namespace DotCloth.MonoGameSample.Scenarios;
 
 internal static class ClothFactory
 {
-    public static ForceCloth Create(int size, string model)
+    public static ForceCloth Create(int size, ForceModel model, ICollider[]? extraColliders = null)
     {
         var width = size;
         var height = size;
@@ -54,33 +54,35 @@ internal static class ClothFactory
             }
         }
 
-        for (int x = 0; x < width; x++)
-        {
-            invMass[x] = 0f;
-        }
+        invMass[Idx(0, height - 1)] = 0f;
+        invMass[Idx(width - 1, height - 1)] = 0f;
 
         var forces = new List<IForce>();
         var constraints = new List<IConstraint>();
 
         switch (model)
         {
-            case "Springs":
+            case ForceModel.Springs:
                 forces.Add(new EdgeSpringForce(springs.ToArray()));
                 break;
-            case "Shells":
+            case ForceModel.Shells:
                 forces.Add(new EdgeSpringForce(springs.ToArray()));
                 forces.Add(new DiscreteShellForce(dihedrals.ToArray()));
                 break;
-            case "FEM":
+            case ForceModel.Fem:
                 forces.Add(new CoRotationalFemForce(tris.ToArray()));
                 break;
-            case "Springs+Strain":
+            case ForceModel.SpringsWithStrain:
                 forces.Add(new EdgeSpringForce(springs.ToArray()));
                 constraints.Add(new StrainLimiter(edges.ToArray()));
                 break;
         }
 
-        var colliders = new ICollider[] { new PlaneCollider(Vector3.Zero, Vector3.UnitY) };
+        var colliders = new List<ICollider>();
+        if (extraColliders != null)
+        {
+            colliders.AddRange(extraColliders);
+        }
 
         return new ForceCloth(
             positions,
@@ -90,6 +92,6 @@ internal static class ClothFactory
             0.99f,
             constraints: constraints.ToArray(),
             integrator: SemiImplicitEulerIntegrator.Instance,
-            colliders: colliders);
+            colliders: colliders.ToArray());
     }
 }

@@ -2,9 +2,11 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <GodotProjectDir>$(MSBuildProjectDirectory)</GodotProjectDir>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../DotCloth.MonoGameSample/Scenarios/ClothFactory.cs" Link="ClothFactory.cs" />
+    <Compile Include="../DotCloth.MonoGameSample/Scenarios/ForceModel.cs" Link="ForceModel.cs" />
     <ProjectReference Include="../../src/DotCloth/DotCloth.csproj" />
   </ItemGroup>
 </Project>

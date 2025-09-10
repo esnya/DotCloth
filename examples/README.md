@@ -20,10 +20,11 @@ Launch the desktop sample:
 dotnet run --project examples/DotCloth.MonoGameSample
 ```
 
-Press `S` to cycle scenarios and `M` to cycle force models.
-A ground plane collider keeps the cloth from falling below Y=0.
+Press `S` to cycle scenarios (including moving colliders) and `M` to cycle force models.
+Right-drag the mouse to orbit the camera and use the wheel to zoom.
+A ground plane grid visualizes the floor collider and keeps the cloth from falling below Y=0.
 
 ## Godot Sample
 Open `examples/DotCloth.GodotSample` in Godot 4 and run the scene.
-Press number keys to switch force models.
-A ground plane collider keeps the cloth from falling below Y=0.
+Use the on-screen panel to switch force models and toggle scenario nodes.
+Plane, sphere, and capsule colliders are Godot nodes; a ground plane keeps the cloth above Y=0.
