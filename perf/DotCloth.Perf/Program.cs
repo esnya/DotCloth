@@ -1,129 +1,167 @@
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
-using DotCloth.Simulation.Core;
-using DotCloth.Simulation.Parameters;
+using System.Runtime.InteropServices;
+using DotCloth;
+using DotCloth.Forces;
+using DotCloth.Constraints;
+using DotCloth.MassSpring;
+using System.Threading;
 
-static class Perf
+static ForceCloth BuildCloth(int size, string model)
 {
-    static (Vector3[] pos, int[] tris) MakeGrid(int n, float spacing)
+    var width = size;
+    var height = size;
+    var positions = new Vector3[width * height];
+    var invMass = new float[positions.Length];
+    var springs = new List<EdgeSpringForce.Spring>();
+    var edges = new List<StrainLimiter.Edge>();
+    var tris = new List<CoRotationalFemForce.Triangle>();
+    var dihedrals = new List<DiscreteShellForce.Dihedral>();
+    const float spacing = 1f;
+
+    int Idx(int x, int y) => y * width + x;
+
+    for (int y = 0; y < height; y++)
     {
-        var pos = new Vector3[n * n];
-        for (int y = 0; y < n; y++)
-            for (int x = 0; x < n; x++)
-                pos[y * n + x] = new Vector3(x * spacing, 0, -y * spacing);
-        var tris = new int[(n - 1) * (n - 1) * 6];
-        int t = 0;
-        for (int y = 0; y < n - 1; y++)
-            for (int x = 0; x < n - 1; x++)
+        for (int x = 0; x < width; x++)
+        {
+            var idx = Idx(x, y);
+            positions[idx] = new Vector3(x * spacing, 5f + y * spacing, 0f);
+            invMass[idx] = 1f;
+            if (x > 0)
             {
-                int i = y * n + x;
-                int iRight = i + 1;
-                int iDown = i + n;
-                int iDownRight = i + n + 1;
-                tris[t++] = i; tris[t++] = iRight; tris[t++] = iDown;
-                tris[t++] = iDown; tris[t++] = iRight; tris[t++] = iDownRight;
+                springs.Add(new EdgeSpringForce.Spring(Idx(x - 1, y), idx, spacing, 100f));
+                edges.Add(new StrainLimiter.Edge(Idx(x - 1, y), idx, spacing, 1.1f));
             }
-        return (pos, tris);
-    }
-
-    static void RunCase(int n, int iterations, int substeps, int frames, float dt)
-    {
-        var (pos0, tris) = MakeGrid(n, 0.05f);
-        var velocities = new Vector3[pos0.Length];
-        var solver = new PbdSolver();
-        var p = new ClothParameters
-        {
-            UseGravity = true,
-            GravityScale = 1.0f,
-            StretchStiffness = 0.9f,
-            BendStiffness = 0.5f,
-            TetherStiffness = 0.0f,
-            Iterations = iterations,
-            Substeps = substeps,
-            ComplianceScale = 1e-6f,
-        };
-        solver.Initialize(pos0, tris, p);
-        // Pin top row
-        var pins = Enumerable.Range(0, n).Select(i => i).ToArray();
-        solver.PinVertices(pins);
-
-        // Warmup
-        for (int i = 0; i < 60; i++) solver.Step(dt, pos0, velocities);
-
-        var sw = Stopwatch.StartNew();
-        for (int i = 0; i < frames; i++) solver.Step(dt, pos0, velocities);
-        sw.Stop();
-        double ms = sw.Elapsed.TotalMilliseconds;
-        double msPerFrame = ms / frames;
-        double fps = 1000.0 / msPerFrame;
-        Console.WriteLine($"Grid {n}x{n} V={pos0.Length}, Iters={iterations}, Substeps={substeps}, Frames={frames}: {ms:F1} ms total, {msPerFrame:F3} ms/frame (~{fps:F1} FPS)");
-    }
-
-    static void RunMultiCase(int instances, int n, int iterations, int substeps, int frames, float dt)
-    {
-        var solvers = new PbdSolver[instances];
-        var positions = new Vector3[instances][];
-        var velocities = new Vector3[instances][];
-        var (templatePos, tris) = MakeGrid(n, 0.05f);
-        for (int idx = 0; idx < instances; idx++)
-        {
-            positions[idx] = (Vector3[])templatePos.Clone();
-            velocities[idx] = new Vector3[templatePos.Length];
-            var solver = new PbdSolver();
-            var p = new ClothParameters
+            if (y > 0)
             {
-                UseGravity = true,
-                GravityScale = 1.0f,
-                StretchStiffness = 0.9f,
-                BendStiffness = 0.5f,
-                TetherStiffness = 0.0f,
-                Iterations = iterations,
-                Substeps = substeps,
-                ComplianceScale = 1e-6f,
-            };
-            solver.Initialize(positions[idx], tris, p);
-            // Pin top row
-            var pins = Enumerable.Range(0, n).Select(i => i).ToArray();
-            solver.PinVertices(pins);
-            solvers[idx] = solver;
+                springs.Add(new EdgeSpringForce.Spring(Idx(x, y - 1), idx, spacing, 100f));
+                edges.Add(new StrainLimiter.Edge(Idx(x, y - 1), idx, spacing, 1.1f));
+            }
+            if (x > 0 && y > 0)
+            {
+                var a = Idx(x - 1, y - 1);
+                var b = Idx(x, y - 1);
+                var c = Idx(x - 1, y);
+                var d = idx;
+                tris.Add(new CoRotationalFemForce.Triangle(a, b, c, positions[a], positions[b], positions[c], 50f));
+                tris.Add(new CoRotationalFemForce.Triangle(c, b, d, positions[c], positions[b], positions[d], 50f));
+                dihedrals.Add(new DiscreteShellForce.Dihedral(a, b, c, d, 0f, 10f));
+            }
         }
-
-        // Warmup
-        for (int i = 0; i < 60; i++)
-        {
-            for (int s = 0; s < instances; s++) solvers[s].Step(dt, positions[s], velocities[s]);
-        }
-
-        var sw = Stopwatch.StartNew();
-        for (int i = 0; i < frames; i++)
-        {
-            for (int s = 0; s < instances; s++) solvers[s].Step(dt, positions[s], velocities[s]);
-        }
-        sw.Stop();
-        double ms = sw.Elapsed.TotalMilliseconds;
-        double msPerFrame = ms / frames;
-        double fps = 1000.0 / msPerFrame;
-        int verts = templatePos.Length;
-        Console.WriteLine($"Instances={instances} Grid {n}x{n} V={verts} each, Iters={iterations}, Substeps={substeps}, Frames={frames}: {ms:F1} ms total, {msPerFrame:F3} ms/frame (~{fps:F1} FPS)");
     }
 
-    static void Main(string[] args)
+    for (int x = 0; x < width; x++)
     {
-        int frames = 300; // ~5s @ 60 FPS
-        float dt = 1f / 60f;
-        Console.WriteLine("DotCloth perf smoke");
-        RunCase(n: 32, iterations: 8, substeps: 1, frames, dt);
-        RunCase(n: 48, iterations: 10, substeps: 1, frames, dt);
-        RunCase(n: 64, iterations: 10, substeps: 1, frames, dt);
-        // Heavier
-        RunCase(n: 64, iterations: 12, substeps: 2, frames, dt);
+        invMass[x] = 0f;
+    }
 
-        Console.WriteLine();
-        Console.WriteLine("Multi-instance (avatar-scale) tests");
-        int instances = 40;
-        RunMultiCase(instances, n: 20, iterations: 8, substeps: 1, frames, dt);
-        RunMultiCase(instances, n: 24, iterations: 8, substeps: 1, frames, dt);
-        RunMultiCase(instances, n: 28, iterations: 10, substeps: 1, frames, dt);
-        RunMultiCase(instances, n: 32, iterations: 10, substeps: 1, frames, dt);
+    var forces = new List<IForce>();
+    var constraints = new List<IConstraint>();
+
+    switch (model)
+    {
+        case "Springs":
+            forces.Add(new EdgeSpringForce(springs.ToArray()));
+            break;
+        case "Shells":
+            forces.Add(new EdgeSpringForce(springs.ToArray()));
+            forces.Add(new DiscreteShellForce(dihedrals.ToArray()));
+            break;
+        case "FEM":
+            forces.Add(new CoRotationalFemForce(tris.ToArray()));
+            break;
+        case "Springs+Strain":
+            forces.Add(new EdgeSpringForce(springs.ToArray()));
+            constraints.Add(new StrainLimiter(edges.ToArray()));
+            break;
+    }
+
+    return new ForceCloth(
+        positions,
+        invMass,
+        forces.ToArray(),
+        new Vector3(0f, -9.81f, 0f),
+        0.99f,
+        constraints.ToArray(),
+        SemiImplicitEulerIntegrator.Instance);
+}
+
+// args: --maxSize <N> --maxInstances <M>
+var maxSize = 20;
+var maxInstances = 8;
+for (int i = 0; i < args.Length - 1; i++)
+{
+    if (args[i] == "--maxSize" && int.TryParse(args[i + 1], out var ms))
+    {
+        maxSize = ms;
+    }
+    if (args[i] == "--maxInstances" && int.TryParse(args[i + 1], out var mi))
+    {
+        maxInstances = mi;
+    }
+}
+
+var runtime = RuntimeInformation.FrameworkDescription;
+var os = RuntimeInformation.OSDescription;
+var cores = Environment.ProcessorCount;
+ThreadPool.GetMaxThreads(out var workerThreads, out _);
+Console.WriteLine($".NET Runtime: {runtime}");
+Console.WriteLine($"OS: {os}, logical cores: {cores}, threadpool max threads: {workerThreads}");
+
+string[] models = { "Springs", "Shells", "FEM", "Springs+Strain" };
+var sizes = new List<int>();
+for (int s = 10; s <= maxSize; s += 10)
+{
+    sizes.Add(s);
+}
+var instanceCounts = new List<int>();
+for (int inst = 1; inst <= maxInstances; inst *= 2)
+{
+    instanceCounts.Add(inst);
+}
+const int steps = 200;
+const float dt = 0.016f;
+
+foreach (var model in models)
+{
+    var done = false;
+    foreach (var size in sizes)
+    {
+        foreach (var instances in instanceCounts)
+        {
+            var cloths = new ForceCloth[instances];
+            for (int i = 0; i < instances; i++)
+            {
+                cloths[i] = BuildCloth(size, model);
+            }
+
+            var sw = Stopwatch.StartNew();
+            for (int step = 0; step < steps; step++)
+            {
+                for (int i = 0; i < instances; i++)
+                {
+                    cloths[i].Step(dt);
+                }
+            }
+            sw.Stop();
+
+            var totalMs = sw.Elapsed.TotalMilliseconds;
+            var frameMs = totalMs / steps;
+            var fps = 1000.0 / frameMs;
+
+            Console.WriteLine($"{model}, {size}x{size}, inst {instances}, {steps} steps: {totalMs:F1} ms total, {frameMs:F2} ms/frame, {fps:F1} FPS");
+
+            if (fps < 60)
+            {
+                done = true;
+                break;
+            }
+        }
+        if (done)
+        {
+            break;
+        }
     }
 }

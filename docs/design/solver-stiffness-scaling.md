@@ -14,7 +14,3 @@ Ensure solver behaviour remains predictable as stiffness values approach zero.
 - `dotnet test -f net9.0`
 - `dotnet build -f net8.0`
 - `dotnet test -f net8.0`
-- `dotnet build -f net9.0 --property DotClothEnableExperimentalXpbd=true`
-- `dotnet test -f net9.0 --property DotClothEnableExperimentalXpbd=true`
-- `dotnet build -f net8.0 --property DotClothEnableExperimentalXpbd=true`
-- `dotnet test -f net8.0 --property DotClothEnableExperimentalXpbd=true`

@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <GodotProjectDir>$(MSBuildThisFileDirectory)</GodotProjectDir>
+  </PropertyGroup>
+</Project>
+

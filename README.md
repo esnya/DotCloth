@@ -3,7 +3,7 @@
 ## Note
 - This repository’s code and documentation annotations are 100% produced with Codex (OpenAI) assistance and maintained under human review.
 
-High‑performance, UnityCloth‑compatible cloth simulation library targeting .NET 9.0. DotCloth mirrors UnityCloth’s parameter model while using a velocity‑level sequential‑impulses solver by default. An experimental XPBD path can be built behind a compile flag for research.
+High‑performance, UnityCloth‑compatible cloth simulation library targeting .NET 9.0. DotCloth offers patent‑neutral force modules (edge springs, discrete shells, co‑rotational FEM, strain limiting) with swappable Euler integrators.
 
 ⚠️ Performance is under active improvement; targeting roughly 5× higher throughput.
 
@@ -25,37 +25,36 @@ High‑performance, UnityCloth‑compatible cloth simulation library targeting .
 
 ## Quick Example
 ```csharp
-var positions = new[] { new Vector3(0,0,0), new Vector3(1,0,0), new Vector3(0,-1,0), new Vector3(1,-1,0) };
-var triangles = new[] { 0,1,2, 2,1,3 };
-var velocities = new Vector3[positions.Length];
-var p = new ClothParameters { UseGravity = true, StretchStiffness = 0.9f, BendStiffness = 0.5f, Iterations = 10 };
-var solver = new PbdSolver();
-solver.Initialize(positions, triangles, p);
-solver.PinVertices(0); // anchor one corner
-solver.SetColliders(new [] { new PlaneCollider(new Vector3(0,1,0), 0f) });
-solver.Step(0.016f, positions, velocities);
+var positions = new[]
+{
+    new Vector3(0f, 2f, 0f),
+    new Vector3(0f, 1f, 0f)
+};
+var invMass = new[] { 0f, 1f };
+var springs = new[] { new EdgeSpringForce.Spring(0, 1, 1f, 100f) };
+var forces = new IForce[] { new EdgeSpringForce(springs) };
+var cloth = new ForceCloth(positions, invMass, forces, new Vector3(0f, -9.81f, 0f), 0.98f);
+cloth.Step(0.016f);
 ```
 
 ## Repository Structure
 - `docs/` — Design notes, algorithms, API, glossary.
 - `src/` — Library code (`DotCloth`).
 - `tests/` — Unit tests (`DotCloth.Tests`).
+- `examples/` — Sample applications.
 - `AGENTS.md` — Project agent rules (extends team defaults).
 
 ## Documentation
 - Auto-generated docs (DocFX) + guides live under `docs/docfx`. CI builds and can publish to GitHub Pages.
 - Legal notes are available under `docs/legal/LEGAL_NOTES.md`.
- - Default solver is velocity‑level (no position projection / no XPBD lambda accumulation). To experiment with XPBD, build with `DOTCLOTH_EXPERIMENTAL_XPBD` and use `XpbdSolver` directly.
 
 ## Contributing
 - Follow the rules in `AGENTS.md`.
 - Keep changes cohesive, documented, and covered by tests.
 
-## Godot Sample
-- Requirements: Godot 4.2+ with .NET (4.3 recommended) and .NET SDK 8.0.
-- Open `examples/DotCloth.GodotSample` in the Godot editor and press Play.
-- The library multi‑targets `net9.0;net8.0` so Godot can consume `net8.0`.
-- The sample is included in the solution but disabled from default builds to keep CI green.
+## Console Sample
+- Run: `dotnet run --project examples/DotCloth.ConsoleSample`
+- Select integrator and model: `dotnet run --project examples/DotCloth.ConsoleSample -- explicit fem`
 
 ## License
 - Apache License 2.0. See `LICENSE` and `NOTICE`.

@@ -10,8 +10,6 @@
       href: ../usage/recommendations.md
     - name: API Overview
       href: ../api/overview.md
-    - name: Algorithms (XPBD – experimental)
-      href: ../algorithms/pbd-outline.md
     - name: Bending Models
       href: ../design/bending-models.md
     - name: Glossary

@@ -2,24 +2,26 @@ Godot Sample – Mini Design
 ==========================
 
 Purpose
-- Provide a cross‑platform, editor‑friendly sample showcasing DotCloth integration in Godot 4 .NET.
+- Provide a cross-platform, editor-friendly sample showcasing DotCloth integration in Godot 4 .NET.
+- Encapsulate simulation logic in a reusable `ClothNode` and expose runtime controls via a small UI panel.
 
 Scope & Boundaries
-- In: minimal Godot project that steps `PbdSolver`, reads mesh data from the active scene and writes vertex updates each frame; scenario-specific controls live in a separate panel.
-- Out: editor tooling, UI, picking/drag, platform‑specific code, CI build of Godot project.
+- In: minimal Godot project that steps `ForceCloth` through a dedicated node and allows runtime switching between force models and cloth size through a UI.
+- Out: mesh deformation, editor tooling, picking/drag, platform-specific code, CI build of Godot project.
 
 Public Surface
-- Folder: `examples/DotCloth.GodotSample` (not added to solution; opt‑in run from Godot).
-- Main scene: `main.tscn` with `Main.cs` (`Node3D`); camera, lighting, ground, scenarios, and UI are defined in the scene tree.
+- Folder: `examples/DotCloth.GodotSample` (not added to solution; opt-in run from Godot).
+- Main scene: `main.tscn` with root `Main.cs` (`Node3D`) wiring up cloth and UI.
+- Child node: `ClothNode.cs` (`Node3D`) exposes `Size`, `Model`, and a metrics string while stepping `ForceCloth`.
+- `ClothPanel.cs` (`Control`) hosts an option list and size spinner to switch models and resize the cloth at runtime, and a performance label showing step time, FPS, and vertex count.
 - Project file: `DotCloth.GodotSample.csproj` targeting `net8.0` with `Godot.NET.Sdk`.
 
 Placement & Dependencies
 - Depends on `src/DotCloth` via project reference.
-- Library multi‑targets `net9.0;net8.0` to enable Godot consumption without changing default consumers.
+- Reuses `ClothFactory` from MonoGame sample via file link for consistency.
 
 Test Strategy
 - No CI build for Godot sample; manual run via editor. Core remains covered by unit tests.
 
 Migration/Compatibility
-- No breaking API changes. Multi‑target added to `DotCloth` (net8.0) to support Godot.
-
+- No breaking API changes. Library already multi-targets `net9.0;net8.0` for Godot.
