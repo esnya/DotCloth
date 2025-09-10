@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource path="res://ClothNode.cs" type="Script" id=1]
 [ext_resource path="res://ClothPanel.cs" type="Script" id=2]
@@ -6,40 +6,50 @@
 [ext_resource path="res://MovingSphereColliderNode.cs" type="Script" id=4]
 [ext_resource path="res://MovingCapsuleColliderNode.cs" type="Script" id=5]
 
+[sub_resource type="PlaneMesh" id=1]
+size = Vector2(20, 20)
+
+[sub_resource type="SphereMesh" id=2]
+radius = 1.0
+
+[sub_resource type="CapsuleMesh" id=3]
+radius = 0.75
+height = 6.0
+
 [node name="Main" type="Node3D"]
 
 [node name="Minimal" type="Node3D" parent="."]
 script = ExtResource(1)
 GridSize = 10
 [node name="Plane" type="MeshInstance3D" parent="Minimal"]
-mesh = PlaneMesh { size = Vector2(20, 20) }
+mesh = SubResource(1)
 script = ExtResource(3)
 
 [node name="Large" type="Node3D" parent="."]
 script = ExtResource(1)
 GridSize = 20
 [node name="Plane" type="MeshInstance3D" parent="Large"]
-mesh = PlaneMesh { size = Vector2(20, 20) }
+mesh = SubResource(1)
 script = ExtResource(3)
 
 [node name="XLarge" type="Node3D" parent="."]
 script = ExtResource(1)
 GridSize = 30
 [node name="Plane" type="MeshInstance3D" parent="XLarge"]
-mesh = PlaneMesh { size = Vector2(20, 20) }
+mesh = SubResource(1)
 script = ExtResource(3)
 
 [node name="Colliders" type="Node3D" parent="."]
 script = ExtResource(1)
 GridSize = 24
 [node name="Plane" type="MeshInstance3D" parent="Colliders"]
-mesh = PlaneMesh { size = Vector2(20, 20) }
+mesh = SubResource(1)
 script = ExtResource(3)
 [node name="MovingSphere" type="MeshInstance3D" parent="Colliders"]
-mesh = SphereMesh { radius = 1.0 }
+mesh = SubResource(2)
 script = ExtResource(4)
 [node name="MovingCapsule" type="MeshInstance3D" parent="Colliders"]
-mesh = CapsuleMesh { radius = 0.75, height = 6.0 }
+mesh = SubResource(3)
 script = ExtResource(5)
 P0 = Vector3(-3, 1, -1)
 P1 = Vector3(3, 1, 1)
