@@ -2,10 +2,11 @@ using System;
 using System.Numerics;
 using DotCloth;
 using DotCloth.Collisions;
+using System.Collections.Generic;
 
 namespace DotCloth.MonoGameSample.Scenarios;
 
-public sealed class CollidersScenario : IScenario
+public sealed class CollidersScenario : IColliderScenario
 {
     public string Name => "Colliders";
     public int GridSize => 24;
@@ -28,6 +29,12 @@ public sealed class CollidersScenario : IScenario
         var sweep = 0.5f * MathF.Sin(_time * 0.5f);
         _capsule.P0 = new Vector3(-3f + sweep, 1f, -1f);
         _capsule.P1 = new Vector3(3f + sweep, 1f, 1f);
+    }
+
+    public void CollectColliderVisuals(List<ColliderViz> dst)
+    {
+        dst.Add(new ColliderViz { Kind = ColliderKind.Sphere, Center = _sphere.Center, Radius = _sphere.Radius });
+        dst.Add(new ColliderViz { Kind = ColliderKind.Capsule, P0 = _capsule.P0, P1 = _capsule.P1, Radius = _capsule.Radius });
     }
 
     private sealed class MovingSphereCollider : ICollider

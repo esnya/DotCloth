@@ -4,7 +4,7 @@
 Demonstrate ForceCloth with selectable scenarios and force models in an interactive desktop app.
 
 ## Scope and boundaries
-- In: basic grid cloth rendered with MonoGame; scenarios switch grid size or animate colliders; force models toggle via a shared `ForceModel` enum and combine freely with any scenario; window title shows current selection and live performance metrics.
+- In: basic grid cloth rendered with MonoGame; scenarios switch grid size or animate colliders; force models toggle via a shared `ForceModel` enum and combine freely with any scenario; window title shows current selection and live performance metrics; right-mouse orbit camera and wheel zoom; floor grid and collider lines visualize environment shapes.
 - Out: advanced rendering, mobile targets.
 
 ## Public API

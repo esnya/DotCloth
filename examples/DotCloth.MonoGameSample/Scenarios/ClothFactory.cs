@@ -54,10 +54,8 @@ internal static class ClothFactory
             }
         }
 
-        for (int x = 0; x < width; x++)
-        {
-            invMass[x] = 0f;
-        }
+        invMass[Idx(0, height - 1)] = 0f;
+        invMass[Idx(width - 1, height - 1)] = 0f;
 
         var forces = new List<IForce>();
         var constraints = new List<IConstraint>();
