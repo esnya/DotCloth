@@ -7,11 +7,6 @@
   <ItemGroup>
     <Compile Include="../DotCloth.MonoGameSample/Scenarios/ClothFactory.cs" Link="ClothFactory.cs" />
     <Compile Include="../DotCloth.MonoGameSample/Scenarios/ForceModel.cs" Link="ForceModel.cs" />
-    <Compile Include="../DotCloth.MonoGameSample/Scenarios/IScenario.cs" Link="IScenario.cs" />
-    <Compile Include="../DotCloth.MonoGameSample/Scenarios/MinimalScenario.cs" Link="MinimalScenario.cs" />
-    <Compile Include="../DotCloth.MonoGameSample/Scenarios/LargeScenario.cs" Link="LargeScenario.cs" />
-    <Compile Include="../DotCloth.MonoGameSample/Scenarios/XLargeScenario.cs" Link="XLargeScenario.cs" />
-    <Compile Include="../DotCloth.MonoGameSample/Scenarios/CollidersScenario.cs" Link="CollidersScenario.cs" />
     <ProjectReference Include="../../src/DotCloth/DotCloth.csproj" />
   </ItemGroup>
 </Project>

@@ -80,7 +80,7 @@ internal static class ClothFactory
                 break;
         }
 
-        var colliders = new List<ICollider> { new PlaneCollider(Vector3.Zero, Vector3.UnitY) };
+        var colliders = new List<ICollider>();
         if (extraColliders != null)
         {
             colliders.AddRange(extraColliders);

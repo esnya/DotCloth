@@ -25,5 +25,5 @@ A ground plane collider keeps the cloth from falling below Y=0.
 
 ## Godot Sample
 Open `examples/DotCloth.GodotSample` in Godot 4 and run the scene.
-Use the on-screen panel to switch force models and scenarios.
-A ground plane collider keeps the cloth from falling below Y=0.
+Use the on-screen panel to switch force models and toggle scenario nodes.
+Plane, sphere, and capsule colliders are Godot nodes; a ground plane keeps the cloth above Y=0.

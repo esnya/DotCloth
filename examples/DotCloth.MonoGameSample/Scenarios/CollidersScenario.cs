@@ -17,7 +17,7 @@ public sealed class CollidersScenario : IScenario
     public ForceCloth Create(ForceModel model)
     {
         _time = 0f;
-        var extras = new ICollider[] { _sphere, _capsule };
+        var extras = new ICollider[] { new PlaneCollider(Vector3.Zero, Vector3.UnitY), _sphere, _capsule };
         return ClothFactory.Create(GridSize, model, extras);
     }
 

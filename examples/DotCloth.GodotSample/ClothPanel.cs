@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Godot;
 using DotCloth.MonoGameSample.Scenarios;
 
@@ -7,16 +8,16 @@ namespace DotCloth.GodotSample;
 public partial class ClothPanel : Control
 {
     [Export]
-    public NodePath ClothPath { get; set; } = null!;
+    public NodePath ScenariosPath { get; set; } = null!;
 
-    private ClothNode _cloth = null!;
+    private readonly List<ClothNode> _scenarios = new();
+    private ClothNode _active = null!;
     private OptionButton _modelOption = null!;
     private OptionButton _scenarioOption = null!;
     private Label _perfLabel = null!;
 
     public override void _Ready()
     {
-        _cloth = GetNode<ClothNode>(ClothPath);
         _modelOption = GetNode<OptionButton>("VBoxContainer/ModelOption");
         _scenarioOption = GetNode<OptionButton>("VBoxContainer/ScenarioOption");
         _perfLabel = GetNode<Label>("VBoxContainer/PerfLabel");
@@ -26,13 +27,23 @@ public partial class ClothPanel : Control
             _modelOption.AddItem(model.ToString(), (int)model);
         }
 
-        foreach (var name in _cloth.ScenarioNames)
+        var root = GetNode<Node>(ScenariosPath);
+        foreach (var child in root.GetChildren())
         {
-            _scenarioOption.AddItem(name);
+            if (child is ClothNode cloth)
+            {
+                _scenarios.Add(cloth);
+                _scenarioOption.AddItem(cloth.Name);
+                cloth.Visible = false;
+                cloth.SetProcess(false);
+                cloth.SetPhysicsProcess(false);
+            }
         }
 
-        _modelOption.Selected = (int)_cloth.Model;
-        _scenarioOption.Selected = _cloth.ScenarioIndex;
+        if (_scenarios.Count > 0)
+        {
+            ActivateScenario(0);
+        }
 
         _modelOption.ItemSelected += OnModelSelected;
         _scenarioOption.ItemSelected += OnScenarioSelected;
@@ -40,17 +51,37 @@ public partial class ClothPanel : Control
 
     public override void _Process(double delta)
     {
-        _perfLabel.Text = _cloth.Metrics;
+        if (_active != null)
+        {
+            _perfLabel.Text = _active.Metrics;
+        }
+    }
+
+    private void ActivateScenario(int index)
+    {
+        for (int i = 0; i < _scenarios.Count; i++)
+        {
+            var node = _scenarios[i];
+            var active = i == index;
+            node.Visible = active;
+            node.SetProcess(active);
+            node.SetPhysicsProcess(active);
+            if (active)
+            {
+                _active = node;
+            }
+        }
+
+        _modelOption.Selected = (int)_active.Model;
     }
 
     private void OnModelSelected(long index)
     {
-        _cloth.Model = (ForceModel)index;
+        _active.Model = (ForceModel)index;
     }
 
     private void OnScenarioSelected(long index)
     {
-        _cloth.ScenarioIndex = (int)index;
+        ActivateScenario((int)index);
     }
 }
-
