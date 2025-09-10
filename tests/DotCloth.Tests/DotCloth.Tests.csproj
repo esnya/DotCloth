@@ -2,12 +2,7 @@
   <PropertyGroup>
     <AssemblyName>DotCloth.Tests</AssemblyName>
     <RootNamespace>DotCloth.Tests</RootNamespace>
-    <!-- Tests target both net9.0 and net8.0 to exercise CI matrix across SDKs -->
     <TargetFrameworks>net9.0;net8.0</TargetFrameworks>
-    <!-- XPBD tests are OPT-IN. Enable by passing -p:DotClothEnableExperimentalXpbd=true -->
-    <DotClothExtraDefines Condition="'$(DotClothEnableExperimentalXpbd)'=='true'">DOTCLOTH_EXPERIMENTAL_XPBD</DotClothExtraDefines>
-    <!-- Allow CI/command line to toggle XPBD tests in sync with the library -->
-    <DefineConstants>$(DefineConstants);$(DotClothExtraDefines)</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="xunit" Version="2.9.0" />

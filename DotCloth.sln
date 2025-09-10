@@ -8,11 +8,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.Tests", "tests/Dot
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.Perf", "perf/DotCloth.Perf/DotCloth.Perf.csproj", "{2C0C2D7E-20C5-4B30-985A-32B9C230E0E7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.MonoGameSample", "examples/DotCloth.MonoGameSample/DotCloth.MonoGameSample.csproj", "{B86AB089-BC15-4906-AD3F-B79504556598}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.ConsoleSample", "examples/DotCloth.ConsoleSample/DotCloth.ConsoleSample.csproj", "{6F48BB81-F8FE-4076-828C-D883FB6F6ADB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.GodotSample", "examples/DotCloth.GodotSample/DotCloth.GodotSample.csproj", "{42185D7C-E4FB-477F-A071-0F44F4A3524A}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.SimCli", "tools/DotCloth.SimCli/DotCloth.SimCli.csproj", "{B0D9281F-8C85-412E-A95B-5B7CC260251C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotCloth.MonoGameSample", "examples/DotCloth.MonoGameSample/DotCloth.MonoGameSample.csproj", "{E7A01847-5091-46BA-B471-5EDFB8E20EF2}"
 EndProject
 Global
     GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -32,17 +30,13 @@ Global
         {2C0C2D7E-20C5-4B30-985A-32B9C230E0E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
         {2C0C2D7E-20C5-4B30-985A-32B9C230E0E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
         {2C0C2D7E-20C5-4B30-985A-32B9C230E0E7}.Release|Any CPU.Build.0 = Release|Any CPU
-        {B86AB089-BC15-4906-AD3F-B79504556598}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-        {B86AB089-BC15-4906-AD3F-B79504556598}.Debug|Any CPU.Build.0 = Debug|Any CPU
-        {B86AB089-BC15-4906-AD3F-B79504556598}.Release|Any CPU.ActiveCfg = Release|Any CPU
-        {B86AB089-BC15-4906-AD3F-B79504556598}.Release|Any CPU.Build.0 = Release|Any CPU
-        {42185D7C-E4FB-477F-A071-0F44F4A3524A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-        {42185D7C-E4FB-477F-A071-0F44F4A3524A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-        {42185D7C-E4FB-477F-A071-0F44F4A3524A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-        {42185D7C-E4FB-477F-A071-0F44F4A3524A}.Release|Any CPU.Build.0 = Release|Any CPU
-        {B0D9281F-8C85-412E-A95B-5B7CC260251C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-        {B0D9281F-8C85-412E-A95B-5B7CC260251C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-        {B0D9281F-8C85-412E-A95B-5B7CC260251C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-        {B0D9281F-8C85-412E-A95B-5B7CC260251C}.Release|Any CPU.Build.0 = Release|Any CPU
+        {6F48BB81-F8FE-4076-828C-D883FB6F6ADB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {6F48BB81-F8FE-4076-828C-D883FB6F6ADB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {6F48BB81-F8FE-4076-828C-D883FB6F6ADB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {6F48BB81-F8FE-4076-828C-D883FB6F6ADB}.Release|Any CPU.Build.0 = Release|Any CPU
+        {E7A01847-5091-46BA-B471-5EDFB8E20EF2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {E7A01847-5091-46BA-B471-5EDFB8E20EF2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {E7A01847-5091-46BA-B471-5EDFB8E20EF2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {E7A01847-5091-46BA-B471-5EDFB8E20EF2}.Release|Any CPU.Build.0 = Release|Any CPU
     EndGlobalSection
 EndGlobal

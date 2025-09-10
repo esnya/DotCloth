@@ -1,74 +1,15 @@
-API Overview (initial)
-======================
+API Overview
+============
 
-Parameter Model
-- `ClothParameters` mirrors UnityCloth concepts: damping, stretch/bend/tether stiffness (or compliance), friction, thickness, gravity toggle/scale, external/random acceleration, air drag.
-  - `RandomAcceleration` with deterministic `RandomSeed` influences integration; default 0 disabled.
+DotCloth currently provides a patent-neutral mass–spring solver with pluggable Euler integrators (semi-implicit by default). The API mirrors common Unity Cloth parameters while keeping modules swappable.
 
-Core Interfaces
-- `IClothSimulator`
-  - `void Initialize(ReadOnlySpan<Vector3> positions, ReadOnlySpan<int> triangles, ClothParameters parameters)`
-  - `void Step(float deltaTime, Vector3[] positions, Vector3[] velocities)`
-  - `void UpdateParameters(ClothParameters parameters)`
-  - `void SetInverseMasses(ReadOnlySpan<float> inverseMasses)` — 0 fixes a vertex (pinning)
-  - `void PinVertices(ReadOnlySpan<int> indices)` — convenience pin API
-  - `void ResetRestState(ReadOnlySpan<Vector3> positions)` — recompute rest values
-  - `void SetColliders(IEnumerable<Collision.ICollider> colliders)`
-  - `void SetTetherAnchors(ReadOnlySpan<int> anchors)` — define anchors for tethers
+Parameter Mapping
+-----------------
+| Unity Cloth Parameter | MassSpringCloth Parameter |
+|-----------------------|---------------------------|
+| Stretching Stiffness  | Spring.Stiffness          |
+| Damping               | damping                   |
+| Use Gravity           | gravity                   |
+| Mass                  | 1 / invMass               |
 
-Solver Variants
-- Default: velocity‑level sequential impulses (no XPBD lambda/compliance accumulation).
-- Experimental: XPBD (position‑based) available when compiled with `DOTCLOTH_EXPERIMENTAL_XPBD` and used via `XpbdSolver` directly.
-
-Solver Settings
-- `ClothParameters.Iterations` — constraint iterations per substep (default 8).
-- `ClothParameters.Substeps` — substeps per `Step` (default 1).
-- `ClothParameters.ComplianceScale` — used only by XPBD to derive compliance from stiffness.
-
-Tuning Notes
-- Iterations are the primary quality vs. cost knob. Start at 8–10 and adjust by observing stretch/bend violation reduction vs. time budget.
-- Substeps increase cost quickly; prefer higher Iterations before increasing Substeps.
-- ComplianceScale controls stiffness mapping; lower values make high stiffness more rigid.
-
-Usage Guide
-- See `docs/usage/guide.md` for end‑to‑end examples, patterns, and pitfalls.
-
-Collision Hooks
-- Implement `ICollider.Resolve(prevPositions, positions, velocities, dt, thickness, friction)` and pass to `PbdSolver.SetColliders(...)`.
-- Included: `PlaneCollider` (infinite plane), `SphereCollider` (center + radius), `CapsuleCollider` (segment + radius).
-- Receives previous positions to allow simple swept push-out and reduce tunneling.
-
-Constraints
-- Stretch: unique edges from triangles. Default solver applies sequential impulses; XPBD variant uses per‑edge lambdas (compliance).
-- Bending: distance across opposite vertices of adjacent triangles. Default solver uses impulses; XPBD variant uses compliance. Future: dihedral angle.
-- Tethers: rest/anchor targets to stabilize motion. Default solver uses impulses + small position post‑stabilization; XPBD variant uses compliance.
-- Tether‑to‑anchor: nearest anchor per vertex with rest length = initial distance × `TetherLengthScale`.
-
-Batching (internal)
-- Greedy batching groups constraints that do not share vertices; solver processes batches sequentially for determinism.
-- This prepares for future parallelization while keeping the public API unchanged.
-
-Performance Notes
-- Per-step allocationsは避け、内部バッファ（前フレーム位置など）を再利用。
-- 制約・トポロジは初期化時に構築し、実行時は読み取りのみ。
-
-Threading Contract
-- Each simulator instance is independent. Methods are safe to call from multiple threads on different instances. Concurrent calls on the same instance require the caller to synchronize unless the implementation documents otherwise.
-
-Determinism
-- For a fixed time step, parameters, and topology, sequences of steps should be deterministic on a given architecture.
- - Randomness uses `RandomSeed`; when non-zero and all other inputs fixed, results remain deterministic.
-
-UnityCloth Mapping (WIP)
-- Damping ↔ `Damping`
-- Stretching Stiffness ↔ `StretchStiffness` (in XPBD maps to compliance)
-- Bending Stiffness ↔ `BendStiffness` (in XPBD maps to compliance)
-- Tether Stiffness ↔ `TetherStiffness`
-- Use Gravity ↔ `UseGravity`; Gravity Scale ↔ `GravityScale`
-- External/Random Accel ↔ `ExternalAcceleration`/`RandomAcceleration`
-- Friction/Thickness ↔ `Friction`/`CollisionThickness`
-
-Migration
-- 0.x breaking: `IClothSimulator` extended with `SetInverseMasses`, `ResetRestState`, and `SetColliders` for clarity and integration needs. Update implementations accordingly.
- - 0.x extension: `PinVertices` convenience added; existing pinning via `SetInverseMasses` remains valid.
- - 0.x extension: `SetTetherAnchors` and `ClothParameters.TetherLengthScale` added for Unity-like tether behavior.
+Additional parameters such as friction or wind can be layered on later via new force models or colliders.

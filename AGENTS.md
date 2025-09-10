@@ -7,9 +7,10 @@ Scope and Source
 Core Principles (project‑specific focus)
 - Language: Code identifiers, docstrings, and public docs are in English. Chat/PR text matches contributor language (JP/EN acceptable).
 - Static safety: Nullable enabled everywhere. No unnecessary Optional/nullable values; absence must be meaningful and handled explicitly.
-- Naming: Favor clear, domain‑accurate names aligned with UnityCloth and PBD/XPBD terminology (see `docs/glossary.md`).
+- Naming: Favor clear, domain‑accurate names aligned with UnityCloth terminology (see `docs/glossary.md`).
 - Small and cohesive: Keep modules focused; avoid speculative abstractions (YAGNI) and duplication (DRY).
 - Design‑first: Add/adjust a short design note before non‑trivial implementation (see `docs/design/mini-design.md`).
+- Force modules: Each algorithm (springs, shells, FEM, strain limiting, etc.) lives in its own class implementing a dedicated interface so combinations remain swappable.
 
 .NET/C# Baseline
 - Target frameworks: `net9.0`.
@@ -27,24 +28,19 @@ Testing and CI
   - `dotnet test -f net9.0`
   - `dotnet build -f net8.0`
   - `dotnet test -f net8.0`
-  - `dotnet build -f net9.0 --property DotClothEnableExperimentalXpbd=true`
-  - `dotnet test -f net9.0 --property DotClothEnableExperimentalXpbd=true`
-  - `dotnet build -f net8.0 --property DotClothEnableExperimentalXpbd=true`
-  - `dotnet test -f net8.0 --property DotClothEnableExperimentalXpbd=true`
 
 Performance Optimization Playbook
 - Measure-first: Add/adjust a perf harness, run representative single/multi-instance cases, and record results before/after.
 - Keep it simple: Prefer low-risk, low-diff optimizations with clear wins; revert quickly if gains are within noise or regressions appear.
 - Determinism and safety: Optimizations must preserve determinism for fixed inputs and not weaken safety checks.
-- Adopted patterns (current code):
-  - Precompute invDt^2 per step; reuse for XPBD alphaTilde.
-  - Precompute per-constraint mass sums (Wi/Wj/Wk/Wl/WSum) and refresh on pin/invMass changes.
-  - Use MathF.ReciprocalSqrtEstimate for inverse length in hot loops (edge/bend/tether) to reduce sqrt/div cost; tests tolerate small numeric differences.
-  - Precompute alphaTilde arrays per step for edges/bends; greedily batch constraints and sort batches by vertex index to improve locality.
-  - Avoid per-step allocations (reuse internal buffers like previous positions); build topology once at Initialize.
+  - Adopted patterns (current code):
+    - Avoid per-step allocations (reuse internal buffers like previous positions); build topology once at Initialize.
 - Deferred/rolled back patterns (not retained):
   - SoA hot loop for positions (Vector3→x/y/z arrays) increased overhead in multi-instance runs; rolled back to keep simplicity and performance.
 - Experiment flags: If parallelism or heavier changes are explored, hide behind an opt-in flag with clear defaults and remove if gains are not material.
+- Result reporting: Note the .NET runtime version and include frame time (ms) and frame rate (FPS) alongside total run time; document CPU/OS context outside tables.
+- Benchmark matrix: Maintain multiple cloth sizes and instance counts; compress `total / frame / FPS` metrics into one cell and dedicate a column to each force model.
+- Benchmark search: Perf harnesses accept `--maxSize` and `--maxInstances` limits and increase complexity until a case drops below 60 FPS or the limits are hit. Record observed CPU core/thread limits alongside OS notes.
 
 Commits
 - Conventional Commits + gitmoji: `type(scope)?: gitmoji Message` (single line). Use PR body for design/migration details.

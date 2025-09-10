@@ -1,18 +1,10 @@
-<Project Sdk="Godot.NET.Sdk/4.4.1">
+<Project Sdk="Godot.NET.Sdk/4.2.1">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <RootNamespace>DotCloth.GodotSample</RootNamespace>
-    <EnableDynamicLoading>true</EnableDynamicLoading>
-    <Nullable>enable</Nullable>
-    <LangVersion>latest</LangVersion>
-    <!-- Fix CS8785 from Godot source generator: ensure GodotProjectDir is set -->
-    <GodotProjectDir>$(MSBuildProjectDirectory)</GodotProjectDir>
+    <GodotProjectDir>.</GodotProjectDir>
   </PropertyGroup>
   <ItemGroup>
-    <!-- Ensure Roslyn source generators receive this MSBuild property -->
-    <CompilerVisibleProperty Include="GodotProjectDir" />
-  </ItemGroup>
-  <ItemGroup>
+    <Compile Include="../DotCloth.MonoGameSample/Scenarios/ClothFactory.cs" Link="ClothFactory.cs" />
     <ProjectReference Include="../../src/DotCloth/DotCloth.csproj" />
   </ItemGroup>
 </Project>
