@@ -1,7 +1,7 @@
 <Project Sdk="Godot.NET.Sdk/4.2.1">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <GodotProjectDir>.</GodotProjectDir>
+    <GodotProjectDir>$(MSBuildProjectDirectory)</GodotProjectDir>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../DotCloth.MonoGameSample/Scenarios/ClothFactory.cs" Link="ClothFactory.cs" />
