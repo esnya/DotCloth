@@ -1,25 +1,25 @@
-using System;
 using Godot;
 using DotCloth;
 using DotCloth.MonoGameSample.Scenarios;
 using System.Diagnostics;
+using System.Collections.Generic;
 
 namespace DotCloth.GodotSample;
 
 public partial class ClothNode : Node3D
 {
     [Export]
-    public int Size
+    public int ScenarioIndex
     {
-        get => _size;
+        get => _scenarioIndex;
         set
         {
-            if (_size == value)
+            if (_scenarioIndex == value)
             {
                 return;
             }
-            _size = value;
-            _cloth = ClothFactory.Create(_size, ToModelString(_model));
+            _scenarioIndex = value;
+            LoadScenario();
         }
     }
 
@@ -34,30 +34,47 @@ public partial class ClothNode : Node3D
                 return;
             }
             _model = value;
-            _cloth = ClothFactory.Create(_size, ToModelString(_model));
+            LoadScenario();
         }
     }
 
-    public string ModelName => ToModelString(_model);
+    public string ModelName => _model.ToString();
+    public string ScenarioName => _scenarios[_scenarioIndex].Name;
+    public IReadOnlyList<string> ScenarioNames => _scenarioNames;
 
     private ForceCloth _cloth = null!;
     private ForceModel _model = ForceModel.Springs;
-    private int _size = 10;
+    private int _scenarioIndex;
+    private readonly IScenario[] _scenarios =
+    {
+        new MinimalScenario(),
+        new LargeScenario(),
+        new XLargeScenario(),
+        new CollidersScenario()
+    };
+    private readonly string[] _scenarioNames;
     private readonly Stopwatch _sw = new();
     private double _perfAccum;
     private double _fpsSmooth;
 
     public string Metrics { get; private set; } = string.Empty;
 
+    public ClothNode()
+    {
+        _scenarioNames = System.Array.ConvertAll(_scenarios, s => s.Name);
+    }
+
     public override void _Ready()
     {
-        _cloth = ClothFactory.Create(_size, ToModelString(_model));
+        LoadScenario();
     }
 
     public override void _PhysicsProcess(double delta)
     {
         _sw.Restart();
-        _cloth.Step((float)delta);
+        var dt = (float)delta;
+        _scenarios[_scenarioIndex].Update(dt);
+        _cloth.Step(dt);
         var simMs = _sw.Elapsed.TotalMilliseconds;
 
         _perfAccum += delta;
@@ -70,20 +87,8 @@ public partial class ClothNode : Node3D
         }
     }
 
-    private static string ToModelString(ForceModel model) => model switch
+    private void LoadScenario()
     {
-        ForceModel.Springs => "Springs",
-        ForceModel.Shells => "Shells",
-        ForceModel.Fem => "FEM",
-        ForceModel.SpringsWithStrain => "Springs+Strain",
-        _ => throw new ArgumentOutOfRangeException(nameof(model), model, null)
-    };
-}
-
-public enum ForceModel
-{
-    Springs,
-    Shells,
-    Fem,
-    SpringsWithStrain
+        _cloth = _scenarios[_scenarioIndex].Create(_model);
+    }
 }

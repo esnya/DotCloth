@@ -10,7 +10,7 @@ namespace DotCloth.MonoGameSample.Scenarios;
 
 internal static class ClothFactory
 {
-    public static ForceCloth Create(int size, string model)
+    public static ForceCloth Create(int size, ForceModel model, ICollider[]? extraColliders = null)
     {
         var width = size;
         var height = size;
@@ -64,23 +64,27 @@ internal static class ClothFactory
 
         switch (model)
         {
-            case "Springs":
+            case ForceModel.Springs:
                 forces.Add(new EdgeSpringForce(springs.ToArray()));
                 break;
-            case "Shells":
+            case ForceModel.Shells:
                 forces.Add(new EdgeSpringForce(springs.ToArray()));
                 forces.Add(new DiscreteShellForce(dihedrals.ToArray()));
                 break;
-            case "FEM":
+            case ForceModel.Fem:
                 forces.Add(new CoRotationalFemForce(tris.ToArray()));
                 break;
-            case "Springs+Strain":
+            case ForceModel.SpringsWithStrain:
                 forces.Add(new EdgeSpringForce(springs.ToArray()));
                 constraints.Add(new StrainLimiter(edges.ToArray()));
                 break;
         }
 
-        var colliders = new ICollider[] { new PlaneCollider(Vector3.Zero, Vector3.UnitY) };
+        var colliders = new List<ICollider> { new PlaneCollider(Vector3.Zero, Vector3.UnitY) };
+        if (extraColliders != null)
+        {
+            colliders.AddRange(extraColliders);
+        }
 
         return new ForceCloth(
             positions,
@@ -90,6 +94,6 @@ internal static class ClothFactory
             0.99f,
             constraints: constraints.ToArray(),
             integrator: SemiImplicitEulerIntegrator.Instance,
-            colliders: colliders);
+            colliders: colliders.ToArray());
     }
 }

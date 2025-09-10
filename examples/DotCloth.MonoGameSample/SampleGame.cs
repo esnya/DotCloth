@@ -24,8 +24,20 @@ public sealed class SampleGame : Game
     private VertexBuffer? _vb;
     private IndexBuffer? _ib;
     private int _indexCount;
-    private readonly IScenario[] _scenarios = { new MinimalScenario(), new LargeScenario(), new XLargeScenario() };
-    private readonly string[] _models = { "Springs", "Shells", "FEM", "Springs+Strain" };
+    private readonly IScenario[] _scenarios =
+    {
+        new MinimalScenario(),
+        new LargeScenario(),
+        new XLargeScenario(),
+        new CollidersScenario()
+    };
+    private readonly ForceModel[] _models =
+    {
+        ForceModel.Springs,
+        ForceModel.Shells,
+        ForceModel.Fem,
+        ForceModel.SpringsWithStrain
+    };
     private int _scenarioIndex;
     private int _modelIndex;
     private ForceCloth _cloth = null!;
@@ -85,7 +97,7 @@ public sealed class SampleGame : Game
         _emaTotalMs = Ema(_emaTotalMs, totalMs, EMA_ALPHA);
         int verts = _cloth.Positions.Length;
         var scenarioName = _scenarios[_scenarioIndex].Name;
-        var modelName = _models[_modelIndex];
+        var modelName = _models[_modelIndex].ToString();
         Window.Title = $"DotCloth MonoGame Sample — {scenarioName} - {modelName} | FPS={_emaFps:F1} | Solver={_emaSolverMs:F2}ms | App={_emaSampleMs:F2}ms | Total={_emaTotalMs:F2}ms | Verts={verts}";
     }
 
@@ -115,6 +127,7 @@ public sealed class SampleGame : Game
         while (_accum >= dt)
         {
             var t0 = Stopwatch.GetTimestamp();
+            _scenarios[_scenarioIndex].Update(dt);
             _cloth.Step(dt);
             _solverTicks += Stopwatch.GetTimestamp() - t0;
             _accum -= dt;

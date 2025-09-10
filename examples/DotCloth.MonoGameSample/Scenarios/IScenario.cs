@@ -6,5 +6,6 @@ public interface IScenario
 {
     string Name { get; }
     int GridSize { get; }
-    ForceCloth Create(string model);
+    ForceCloth Create(ForceModel model);
+    void Update(float dt);
 }

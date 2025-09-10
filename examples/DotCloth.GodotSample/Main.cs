@@ -9,6 +9,6 @@ public partial class Main : Node3D
     public override void _Ready()
     {
         _cloth = GetNode<ClothNode>("Cloth");
-        GD.Print($"Model: {_cloth.ModelName} Size: {_cloth.Size}");
+        GD.Print($"Scenario: {_cloth.ScenarioName} Model: {_cloth.ModelName}");
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using Godot;
+using DotCloth.MonoGameSample.Scenarios;
 
 namespace DotCloth.GodotSample;
 
@@ -10,14 +11,14 @@ public partial class ClothPanel : Control
 
     private ClothNode _cloth = null!;
     private OptionButton _modelOption = null!;
-    private SpinBox _sizeInput = null!;
+    private OptionButton _scenarioOption = null!;
     private Label _perfLabel = null!;
 
     public override void _Ready()
     {
         _cloth = GetNode<ClothNode>(ClothPath);
         _modelOption = GetNode<OptionButton>("VBoxContainer/ModelOption");
-        _sizeInput = GetNode<SpinBox>("VBoxContainer/SizeInput");
+        _scenarioOption = GetNode<OptionButton>("VBoxContainer/ScenarioOption");
         _perfLabel = GetNode<Label>("VBoxContainer/PerfLabel");
 
         foreach (ForceModel model in Enum.GetValues<ForceModel>())
@@ -25,11 +26,16 @@ public partial class ClothPanel : Control
             _modelOption.AddItem(model.ToString(), (int)model);
         }
 
+        foreach (var name in _cloth.ScenarioNames)
+        {
+            _scenarioOption.AddItem(name);
+        }
+
         _modelOption.Selected = (int)_cloth.Model;
-        _sizeInput.Value = _cloth.Size;
+        _scenarioOption.Selected = _cloth.ScenarioIndex;
 
         _modelOption.ItemSelected += OnModelSelected;
-        _sizeInput.ValueChanged += OnSizeChanged;
+        _scenarioOption.ItemSelected += OnScenarioSelected;
     }
 
     public override void _Process(double delta)
@@ -42,9 +48,9 @@ public partial class ClothPanel : Control
         _cloth.Model = (ForceModel)index;
     }
 
-    private void OnSizeChanged(double value)
+    private void OnScenarioSelected(long index)
     {
-        _cloth.Size = (int)value;
+        _cloth.ScenarioIndex = (int)index;
     }
 }
 

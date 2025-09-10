@@ -23,9 +23,6 @@ offset_top = 8.0
 
 [node name="ModelOption" type="OptionButton" parent="ClothPanel/VBoxContainer"]
 
-[node name="SizeInput" type="SpinBox" parent="ClothPanel/VBoxContainer"]
-min_value = 2.0
-max_value = 20.0
-step = 1.0
+[node name="ScenarioOption" type="OptionButton" parent="ClothPanel/VBoxContainer"]
 
 [node name="PerfLabel" type="Label" parent="ClothPanel/VBoxContainer"]
