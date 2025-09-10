@@ -60,6 +60,22 @@ public sealed class MassSpringCloth
     /// <summary>Current particle positions.</summary>
     public Vector3[] Positions { get; }
 
+    /// <summary>Pins the particle at <paramref name="index"/> to <paramref name="position"/>.</summary>
+    public void Pin(int index, Vector3 position)
+    {
+        _invMass[index] = 0f;
+        _velocities[index] = Vector3.Zero;
+        Positions[index] = position;
+    }
+
+    /// <summary>Restores movement of the particle at <paramref name="index"/>.</summary>
+    /// <param name="index">Particle to unpin.</param>
+    /// <param name="invMass">Inverse mass to apply after unpinning.</param>
+    public void Unpin(int index, float invMass)
+    {
+        _invMass[index] = invMass;
+    }
+
     /// <summary>
     /// Advances the simulation by <paramref name="dt"/> seconds.
     /// </summary>

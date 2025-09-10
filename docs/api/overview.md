@@ -13,3 +13,7 @@ Parameter Mapping
 | Mass                  | 1 / invMass               |
 
 Additional parameters such as friction or wind can be layered on later via new force models or colliders.
+
+Particle Pinning
+-----------------
+Fix particles in place with `Pin(index, position)` and restore motion with `Unpin(index, invMass)`.
