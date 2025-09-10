@@ -9,7 +9,7 @@ curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 8.0 -
 
 cat <<'EOP' >> "$HOME/.bashrc"
 export DOTNET_ROOT="$HOME/.dotnet"
-export PATH="\$DOTNET_ROOT:\$PATH"
+export PATH="$DOTNET_ROOT:$PATH"
 EOP
 
 echo "Done. Restart shell to use dotnet."
