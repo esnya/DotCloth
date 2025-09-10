@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using DotCloth.Forces;
 using DotCloth.Constraints;
 using DotCloth.MassSpring; // reuse integrators
+using DotCloth.Collisions;
 
 namespace DotCloth;
 
@@ -14,6 +15,7 @@ public sealed class ForceCloth
     private readonly IForce[] _forces;
     private readonly IConstraint[] _constraints;
     private readonly IIntegrator _integrator;
+    private readonly ICollider[] _colliders;
     private readonly Vector3 _gravity;
     private readonly float _damping;
 
@@ -25,7 +27,8 @@ public sealed class ForceCloth
     /// <param name="damping">Velocity damping factor.</param>
     /// <param name="constraints">Optional position constraints.</param>
     /// <param name="integrator">Time integrator, defaults to semi-implicit Euler.</param>
-    public ForceCloth(Vector3[] initialPositions, float[] invMass, IForce[] forces, Vector3 gravity, float damping, IConstraint[]? constraints = null, IIntegrator? integrator = null)
+    /// <param name="colliders">Optional environment collision shapes.</param>
+    public ForceCloth(Vector3[] initialPositions, float[] invMass, IForce[] forces, Vector3 gravity, float damping, IConstraint[]? constraints = null, IIntegrator? integrator = null, ICollider[]? colliders = null)
     {
         Positions = (Vector3[])initialPositions.Clone();
         _velocities = new Vector3[initialPositions.Length];
@@ -35,6 +38,7 @@ public sealed class ForceCloth
         _damping = damping;
         _constraints = constraints ?? Array.Empty<IConstraint>();
         _integrator = integrator ?? SemiImplicitEulerIntegrator.Instance;
+        _colliders = colliders ?? Array.Empty<ICollider>();
     }
 
     /// <summary>Current particle positions.</summary>
@@ -60,13 +64,9 @@ public sealed class ForceCloth
             var accel = forces[i] * _invMass[i] + _gravity;
             _integrator.Integrate(ref Positions[i], ref _velocities[i], accel, _damping, dt);
 
-            if (Positions[i].Y < 0f)
+            foreach (var c in _colliders)
             {
-                Positions[i].Y = 0f;
-                if (_velocities[i].Y < 0f)
-                {
-                    _velocities[i].Y = 0f;
-                }
+                c.Resolve(ref Positions[i], ref _velocities[i]);
             }
         });
 

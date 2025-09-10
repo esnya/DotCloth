@@ -1,6 +1,7 @@
 using System.Numerics;
 using DotCloth;
 using DotCloth.Forces;
+using DotCloth.Collisions;
 using DotCloth.Constraints;
 using DotCloth.MassSpring;
 using Xunit;
@@ -30,7 +31,8 @@ public class ForceClothTests
         var invMass = new[] { 0f, 1f };
         var springs = new EdgeSpringForce.Spring[] { new(0, 1, 1f, 100f) };
         var forces = new IForce[] { new EdgeSpringForce(springs) };
-        return new ForceCloth(positions, invMass, forces, new Vector3(0f, -9.81f, 0f), 0.98f, integrator: integrator);
+        var colliders = new ICollider[] { new PlaneCollider(Vector3.Zero, Vector3.UnitY) };
+        return new ForceCloth(positions, invMass, forces, new Vector3(0f, -9.81f, 0f), 0.98f, integrator: integrator, colliders: colliders);
     }
 
     private static ForceCloth CreateShellCloth(IIntegrator integrator)
@@ -50,7 +52,8 @@ public class ForceClothTests
         };
         var dihedrals = new DiscreteShellForce.Dihedral[] { new(0, 1, 3, 2, 0f, 10f) };
         var forces = new IForce[] { new EdgeSpringForce(springs), new DiscreteShellForce(dihedrals) };
-        return new ForceCloth(positions, invMass, forces, Vector3.Zero, 0.99f, integrator: integrator);
+        var colliders = new ICollider[] { new PlaneCollider(Vector3.Zero, Vector3.UnitY) };
+        return new ForceCloth(positions, invMass, forces, Vector3.Zero, 0.99f, integrator: integrator, colliders: colliders);
     }
 
     private static ForceCloth CreateFemCloth(IIntegrator integrator)
@@ -64,7 +67,8 @@ public class ForceClothTests
         var invMass = new[] { 0f, 1f, 1f };
         var tris = new CoRotationalFemForce.Triangle[] { new(0, 1, 2, positions[0], positions[1], positions[2], 10f) };
         var forces = new IForce[] { new CoRotationalFemForce(tris) };
-        return new ForceCloth(positions, invMass, forces, Vector3.Zero, 0.99f, integrator: integrator);
+        var colliders = new ICollider[] { new PlaneCollider(Vector3.Zero, Vector3.UnitY) };
+        return new ForceCloth(positions, invMass, forces, Vector3.Zero, 0.99f, integrator: integrator, colliders: colliders);
     }
 
     private static ForceCloth CreateStrainCloth(IIntegrator integrator)
@@ -75,7 +79,8 @@ public class ForceClothTests
         var forces = new IForce[] { new EdgeSpringForce(springs) };
         var edges = new StrainLimiter.Edge[] { new(0, 1, 1f, 1.1f) };
         var limiter = new StrainLimiter(edges);
-        return new ForceCloth(positions, invMass, forces, Vector3.Zero, 0.99f, new IConstraint[] { limiter }, integrator);
+        var colliders = new ICollider[] { new PlaneCollider(Vector3.Zero, Vector3.UnitY) };
+        return new ForceCloth(positions, invMass, forces, Vector3.Zero, 0.99f, new IConstraint[] { limiter }, integrator, colliders);
     }
 
     [Theory]
