@@ -1,5 +1,6 @@
 using System;
 using System.Numerics;
+using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -28,6 +29,9 @@ public sealed class SampleGame : Game
     private VertexPositionColor[] _verts = Array.Empty<VertexPositionColor>();
     private KeyboardState _prevKeys;
     private float _accum;
+    private long _solverTicks;
+    private double _emaFps, _emaSolverMs, _emaTotalMs, _emaSampleMs;
+    private readonly bool _xpbd = Type.GetType("DotCloth.Simulation.Core.XpbdSolver") is not null;
 
     public SampleGame()
     {
@@ -62,6 +66,27 @@ public sealed class SampleGame : Game
         _ib = new IndexBuffer(GraphicsDevice, IndexElementSize.SixteenBits, indices.Length, BufferUsage.WriteOnly);
         _ib.SetData(indices);
         _indexCount = indices.Length;
+        UpdateWindowTitle(new GameTime(TimeSpan.Zero, TimeSpan.Zero));
+    }
+
+    private static double Ema(double prev, double value, double alpha) => prev == 0 ? value : (alpha * value + (1 - alpha) * prev);
+
+    private void UpdateWindowTitle(GameTime time)
+    {
+        double totalMs = time.ElapsedGameTime.TotalMilliseconds;
+        double solverMs = _solverTicks * 1000.0 / Stopwatch.Frequency;
+        double sampleMs = Math.Max(0.0, totalMs - solverMs);
+        double fps = totalMs > 1e-6 ? 1000.0 / totalMs : 0.0;
+        const double a = 0.2;
+        _emaFps = Ema(_emaFps, fps, a);
+        _emaSolverMs = Ema(_emaSolverMs, solverMs, a);
+        _emaSampleMs = Ema(_emaSampleMs, sampleMs, a);
+        _emaTotalMs = Ema(_emaTotalMs, totalMs, a);
+        int verts = _cloth.Positions.Length;
+        var baseTitle = _xpbd ? "DotCloth MonoGame Sample (XPBD)" : "DotCloth MonoGame Sample";
+        var scenarioName = _scenarios[_scenarioIndex].Name;
+        var modelName = _models[_modelIndex];
+        Window.Title = $"{baseTitle} — {scenarioName} - {modelName} | FPS={_emaFps:F1} | Solver={_emaSolverMs:F2}ms | App={_emaSampleMs:F2}ms | Total={_emaTotalMs:F2}ms | Verts={verts}";
     }
 
     protected override void Update(GameTime gameTime)
@@ -86,9 +111,12 @@ public sealed class SampleGame : Game
 
         const float dt = 1f / 60f;
         _accum += (float)gameTime.ElapsedGameTime.TotalSeconds;
+        _solverTicks = 0;
         while (_accum >= dt)
         {
+            var t0 = Stopwatch.GetTimestamp();
             _cloth.Step(dt);
+            _solverTicks += Stopwatch.GetTimestamp() - t0;
             _accum -= dt;
         }
 
@@ -124,6 +152,7 @@ public sealed class SampleGame : Game
         }
 
         base.Draw(gameTime);
+        UpdateWindowTitle(gameTime);
     }
 
     private static short[] BuildIndices(int size)
