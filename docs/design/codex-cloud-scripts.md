@@ -6,8 +6,9 @@ Purpose
 - Trim package caches after image caching to keep layers small.
 
 Scope and Boundaries
-- Setup installs .NET SDK 9.0 and 8.0 using the official installer.
-- Maintenance removes apt package lists and cache.
+- Setup installs .NET SDK 9.0 and 8.0 using the official installer and wires `DOTNET_ROOT` into `PATH`.
+- Maintenance updates the existing .NET SDK installations.
+- Post-cache maintenance removes apt package lists and cache.
 - Scripts live under `.codex/cloud` and have no runtime dependency on library code.
 
 Dependencies
