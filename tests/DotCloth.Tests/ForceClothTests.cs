@@ -9,11 +9,12 @@ namespace DotCloth.Tests;
 
 public class ForceClothTests
 {
+    private static readonly IIntegrator[] integrators = new IIntegrator[] { SemiImplicitEulerIntegrator.Instance, ExplicitEulerIntegrator.Instance };
+
     public static IEnumerable<object[]> Cases
     {
         get
         {
-            var integrators = new IIntegrator[] { SemiImplicitEulerIntegrator.Instance, ExplicitEulerIntegrator.Instance };
             foreach (var integ in integrators)
             {
                 yield return new object[] { integ, (Func<IIntegrator, ForceCloth>)CreateSpringCloth };
