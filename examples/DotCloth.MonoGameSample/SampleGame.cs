@@ -16,6 +16,9 @@ namespace DotCloth.MonoGameSample;
 
 public sealed class SampleGame : Game
 {
+    private const double EPSILON = 1e-6;
+    private const double EMA_ALPHA = 0.2;
+
     private readonly GraphicsDeviceManager _graphics;
     private BasicEffect? _effect;
     private VertexBuffer? _vb;
@@ -31,7 +34,6 @@ public sealed class SampleGame : Game
     private float _accum;
     private long _solverTicks;
     private double _emaFps, _emaSolverMs, _emaTotalMs, _emaSampleMs;
-    private readonly bool _xpbd = Type.GetType("DotCloth.Simulation.Core.XpbdSolver") is not null;
 
     public SampleGame()
     {
@@ -76,17 +78,15 @@ public sealed class SampleGame : Game
         double totalMs = time.ElapsedGameTime.TotalMilliseconds;
         double solverMs = _solverTicks * 1000.0 / Stopwatch.Frequency;
         double sampleMs = Math.Max(0.0, totalMs - solverMs);
-        double fps = totalMs > 1e-6 ? 1000.0 / totalMs : 0.0;
-        const double a = 0.2;
-        _emaFps = Ema(_emaFps, fps, a);
-        _emaSolverMs = Ema(_emaSolverMs, solverMs, a);
-        _emaSampleMs = Ema(_emaSampleMs, sampleMs, a);
-        _emaTotalMs = Ema(_emaTotalMs, totalMs, a);
+        double fps = totalMs > EPSILON ? 1000.0 / totalMs : 0.0;
+        _emaFps = Ema(_emaFps, fps, EMA_ALPHA);
+        _emaSolverMs = Ema(_emaSolverMs, solverMs, EMA_ALPHA);
+        _emaSampleMs = Ema(_emaSampleMs, sampleMs, EMA_ALPHA);
+        _emaTotalMs = Ema(_emaTotalMs, totalMs, EMA_ALPHA);
         int verts = _cloth.Positions.Length;
-        var baseTitle = _xpbd ? "DotCloth MonoGame Sample (XPBD)" : "DotCloth MonoGame Sample";
         var scenarioName = _scenarios[_scenarioIndex].Name;
         var modelName = _models[_modelIndex];
-        Window.Title = $"{baseTitle} — {scenarioName} - {modelName} | FPS={_emaFps:F1} | Solver={_emaSolverMs:F2}ms | App={_emaSampleMs:F2}ms | Total={_emaTotalMs:F2}ms | Verts={verts}";
+        Window.Title = $"DotCloth MonoGame Sample — {scenarioName} - {modelName} | FPS={_emaFps:F1} | Solver={_emaSolverMs:F2}ms | App={_emaSampleMs:F2}ms | Total={_emaTotalMs:F2}ms | Verts={verts}";
     }
 
     protected override void Update(GameTime gameTime)
