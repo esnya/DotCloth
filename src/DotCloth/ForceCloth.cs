@@ -72,7 +72,7 @@ public sealed class ForceCloth
 
         foreach (var c in _constraints)
         {
-            c.Project(Positions);
+            c.Project(Positions, _invMass);
         }
     }
 }
